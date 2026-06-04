@@ -15,14 +15,31 @@ import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+import uuid
+import datetime
+import secrets
+import hashlib
+
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 load_dotenv()
 
+DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
+
 from .schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest
 from .store   import store
+
+# Simple in-memory session store (replaced by DB+JWT in auth implementation)
+# token → user dict
+_sessions: dict[str, dict] = {}
+
+
+def _make_token(user_id: str) -> str:
+    raw = f"{user_id}:{secrets.token_hex(32)}"
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0")
 
@@ -125,3 +142,72 @@ async def verify_magic_link(token: str):
 @app.post("/api/v1/auth/riot-id")
 async def link_riot_id(body: LinkRiotIdRequest):
     raise HTTPException(status_code=501, detail="Auth not yet implemented.")
+
+
+# ------------------------------------------------------------------
+# Dev bypass — only active when DEV_MODE=true in .env
+# NEVER expose these in production
+# ------------------------------------------------------------------
+
+class DevCreateAccountRequest(BaseModel):
+    email:   str = "dev@localhost"
+    riot_id: str | None = None
+
+
+@app.post("/api/v1/dev/create-account")
+async def dev_create_account(body: DevCreateAccountRequest, response: Response):
+    """
+    Create a dev account and return a session token immediately.
+    No email, no magic link, no database required.
+
+    Only works when DEV_MODE=true in .env.
+    Returns a token you can pass as Authorization: Bearer <token>
+    or it sets an auth_token cookie automatically.
+    """
+    if not DEV_MODE:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    user_id = str(uuid.uuid4())
+    user = {
+        "id":       user_id,
+        "email":    body.email,
+        "riot_id":  body.riot_id,
+        "is_paid":  False,
+        "created_at": datetime.datetime.utcnow().isoformat(),
+    }
+    token = _make_token(user_id)
+    _sessions[token] = user
+
+    # Set cookie so the frontend picks it up automatically
+    response.set_cookie(
+        key="auth_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7,  # 7 days
+    )
+
+    return {
+        "token":   token,
+        "user":    user,
+        "message": "Dev account created. Token set as auth_token cookie.",
+    }
+
+
+@app.get("/api/v1/dev/session")
+async def dev_get_session(token: str | None = None):
+    """Look up a dev session by token. Used to verify the bypass worked."""
+    if not DEV_MODE:
+        raise HTTPException(status_code=404, detail="Not found")
+    if not token or token not in _sessions:
+        return {"authenticated": False}
+    return {"authenticated": True, "user": _sessions[token]}
+
+
+@app.delete("/api/v1/dev/sessions")
+async def dev_clear_sessions():
+    """Clear all dev sessions. Useful for testing."""
+    if not DEV_MODE:
+        raise HTTPException(status_code=404, detail="Not found")
+    _sessions.clear()
+    return {"message": "All dev sessions cleared"}
