@@ -1,140 +1,140 @@
 # Agent Handoff Document
-## Valorant Aim Analyzer
 
-Start here. Read this before touching any code.
+Read this before touching any code. It is the single source of truth for project state.
 
 ---
 
-## Product summary
+## Product
 
-SaaS that analyzes Valorant gameplay. Phase 1: Riot API stats + AI coaching report.
+SaaS that analyzes Valorant gameplay. Phase 1: Riot API stats + AI coaching.
 Phase 2: YOLO clip analysis. Phase 3: payments + launch.
 
-Target: $200/month profit in 3 months (~20 paying users at $9/month).
-
----
-
-## Repo structure
-
-```
-valorant-aim-analyzer/
-├── contracts/schemas.py       ← shared typed contracts — all services import from here
-├── services/
-│   ├── cv/                    ← YOLO video analysis (DONE — working)
-│   ├── riot/                  ← Riot API client (STUBBED — needs implementation)
-│   ├── llm/                   ← Claude coaching (STUBBED — needs implementation)
-│   └── api/                   ← FastAPI backend (STUBBED — needs implementation)
-├── frontend/                  ← Next.js app (BUILT — working in mock mode)
-├── scripts/                   ← training utilities
-├── data/                      ← training dataset (gitignored)
-└── .env.example               ← copy to .env, fill in keys
-```
+Solo founder. Success threshold: $200/month profit in 3 months (~20 paying users).
 
 ---
 
 ## Service status
 
-| Service | Status | Task doc |
-|---|---|---|
-| `services/cv` | ✅ Done | — |
-| `services/riot` | ✅ Done (needs RIOT_API_KEY to run) | `services/riot/AGENT_TASKS.md` |
-| `services/llm` | ✅ Done (needs ANTHROPIC_API_KEY to run) | `services/llm/AGENT_TASKS.md` |
-| `services/api` | 🟡 Core done, auth stubbed | `services/api/AGENT_TASKS.md` |
-| `frontend` | 🟡 Built (mock mode) | `frontend/PLAN.md` |
+| Service | Status | Entry point | Notes |
+|---|---|---|---|
+| `services/cv` | ✅ Done | `main.py` | Runs standalone. Needs `models/valorant.pt`. |
+| `services/riot` | ✅ Done | `service.py → get_riot_report()` | Needs `RIOT_API_KEY` to run. Dev key expires every 24h. |
+| `services/llm` | ✅ Done | `coach.py → generate_coaching_report()` | Needs `ANTHROPIC_API_KEY`. |
+| `services/api` | 🟡 Partial | `main.py` → uvicorn port 8000 | `/analyze` + `/report/{id}` work. Auth returns 501. |
+| `frontend` | ✅ Done | `npm run dev` port 3000 | Mock mode (`NEXT_PUBLIC_MOCK_MODE=true`) and real mode both work. |
 
 ---
 
-## Contracts (read before building anything)
+## Contracts
 
-`contracts/schemas.py` defines all inter-service types:
+`contracts/schemas.py` — all inter-service types. Never import service internals across services.
 
-- `RiotReport` — output of riot service
-- `CVReport` — output of cv service
-- `CoachingReport` — output of llm service
-- `AnalysisResult` — combined result returned by API
-
-**Rule:** services never import each other's internals. They only import from `contracts/`.
+Key types: `RiotReport`, `CVReport`, `CoachingReport`, `AnalysisResult`.
 
 ---
 
-## Build order
-
-Build in this sequence. Each step depends on the previous.
+## What works right now
 
 ```
-1. services/riot   →  produces RiotReport
-2. services/llm    →  consumes RiotReport, produces CoachingReport
-3. services/api    →  wires riot + llm, exposes HTTP, owns DB + auth
-4. frontend        →  connect mock mode → real API (change NEXT_PUBLIC_MOCK_MODE=false)
+POST /api/v1/analyze  {"riot_id": "Name#TAG"}
+→ background task: get_riot_report() → generate_coaching_report()
+→ GET /api/v1/report/{id} polls until done
+→ frontend report page displays result
 ```
+
+Requires `RIOT_API_KEY` + `ANTHROPIC_API_KEY` in `.env`. Set `DEV_MODE=true` for account bypass.
 
 ---
 
-## Environment setup
+## Remaining work — in priority order
+
+### 1. Auth + DB (`services/api/AGENT_TASKS.md` Tasks A + B)
+
+**Complexity: High. Blocks: user accounts, free tier limits, paid tier.**
+
+- Task A: PostgreSQL models (User, MagicToken, Report) + Alembic migration
+- Task B: Magic link auth (`/auth/magic-link` → Resend email → `/auth/verify` → JWT cookie)
+
+Requires: `DATABASE_URL` (Neon/Supabase free tier), `RESEND_API_KEY`, `JWT_SECRET`.
+
+### 2. Rate limiting + credit tracking (`services/api/AGENT_TASKS.md` Tasks C + D)
+
+**Complexity: Low. Depends on Task A (DB).**
+
+- `slowapi` 10 req/min on `/analyze`
+- Free tier: 10 analyses/month per user, tracked in `User.credits_used`
+
+### 3. Wire frontend auth to real API
+
+**Complexity: Low. Depends on Tasks A + B.**
+
+- Sign-in form already exists. Just needs `/api/v1/auth/magic-link` to return 200 (not 501).
+- Set `NEXT_PUBLIC_MOCK_MODE=false` in `frontend/.env.local`.
+
+### 4. Riot production key
+
+**Complexity: Admin task. No code needed.**
+
+Apply at https://developer.riotgames.com/app-type — takes 1-3 days.
+Dev key expires every 24h and will break the live product.
+
+### 5. Phase 2: Clip upload
+
+**Complexity: High. Do not start until Phase 1 has paying users.**
+
+- Web upload form (3 min cap, drag-and-drop)
+- FFmpeg frame extraction → CV service → results merged with riot report
+- Async queue (Celery or Redis)
+
+### 6. Phase 3: Payments
+
+**Complexity: Medium. Do not start until Phase 1 has paying users.**
+
+- Stripe integration, credit-based billing
+- Free tier: 10/month. Paid: $9/month.
+- `services/api/AGENT_TASKS.md` has Stripe setup notes.
+
+---
+
+## Key decisions — settled, do not revisit
+
+- Screen center = crosshair. No crosshair detection needed.
+- Phase 1 ships without clip analysis.
+- Haiku 4.5 for production LLM.
+- Magic link email auth, no passwords.
+- Riot ID = account identifier (prevents multi-account abuse).
+- In-memory store for MVP — replace with DB when auth is built.
+- No Redis queue until processing exceeds 10s.
+- 3-minute clip cap, free tier.
+- 7-day trial instead of money-back guarantee.
+
+---
+
+## Out of scope (first 3 months)
+
+Desktop client, CS2/Apex support, team accounts, replay parsing, mobile, Discord bot, live coaching, custom drills beyond Claude output.
+
+---
+
+## Environment
 
 ```bash
 cp .env.example .env
-# Fill in: RIOT_API_KEY, ANTHROPIC_API_KEY, DATABASE_URL, JWT_SECRET, RESEND_API_KEY
+# Minimum to run: RIOT_API_KEY, ANTHROPIC_API_KEY, DEV_MODE=true
 ```
 
-Each service has its own venv:
+Each service has its own `requirements.txt`. Install per service:
 ```bash
-cd services/riot && python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt
-cd services/llm  && python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt
-cd services/api  && python -m venv .venv && .venv/Scripts/activate && pip install -r requirements.txt
+cd services/api && pip install -r requirements.txt
+cd services/riot && pip install -r requirements.txt
+cd services/llm && pip install -r requirements.txt
 ```
 
----
-
-## Running locally
-
+Run:
 ```bash
 # Backend
-cd services/api
-uvicorn main:app --reload --port 8000
+cd services/api && uvicorn main:app --reload --port 8000
 
-# Frontend (separate terminal)
-cd frontend
-npm run dev     # → http://localhost:3000
+# Frontend
+cd frontend && npm run dev
 ```
-
-Set `NEXT_PUBLIC_MOCK_MODE=false` in `.env.local` once the API is running.
-
----
-
-## Key decisions (settled — do not revisit)
-
-- Screen centre = crosshair. No crosshair detection needed in CV pipeline.
-- Phase 1 ships without clip analysis (tracker stats only).
-- Free tier: 10 analyses/month. Paid: $9/month unlimited.
-- Riot ID = account identifier (one free account per Riot ID).
-- Magic link email auth only — no passwords.
-- Claude Haiku 4.5 for production LLM (~$0.006/report).
-- No Redis queue in MVP — run analysis inline. Add queue when >10s processing.
-- 3-minute clip cap for free tier (Phase 2).
-
----
-
-## What NOT to build (Phase 1)
-
-- Desktop client
-- CS2/Apex support
-- Team/coach accounts
-- Replay file parsing
-- Mobile app
-- Discord bot
-- Stripe/payments (Phase 3 only)
-- Dashboard/history (Phase 3 only)
-
----
-
-## Immediate next actions (in order)
-
-1. Get your keys into `.env` (copy `.env.example` → `.env`):
-   - `RIOT_API_KEY` — https://developer.riotgames.com (dev key, apply for prod key too)
-   - `ANTHROPIC_API_KEY` — https://console.anthropic.com
-2. Test end-to-end: `cd services/api && uvicorn main:app --reload`
-   then `POST /api/v1/analyze` with your Riot ID
-3. Implement auth (DB + magic link) — see `services/api/AGENT_TASKS.md` Tasks A+B
-4. Set `NEXT_PUBLIC_MOCK_MODE=false` in `frontend/.env.local` and test frontend → API
-5. Soft launch to 5 test users

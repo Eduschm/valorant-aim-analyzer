@@ -10,7 +10,7 @@ export async function GET(
 ) {
   const { id } = params
 
-  if (MOCK_MODE || id === 'mock-001') {
+  if (MOCK_MODE) {
     return NextResponse.json({ success: true, data: { ...MOCK_REPORT, report_id: id } })
   }
 
