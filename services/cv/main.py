@@ -13,9 +13,14 @@ Arguments:
 import argparse
 import os
 import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import cv2
 from tqdm import tqdm
+from services.logging import configure_logging, get_logger
+
+configure_logging()
+logger = get_logger("services.cv.main")
 
 import config
 from src.detector       import Detector, CrosshairDetector
@@ -36,7 +41,7 @@ def main():
     args = parse_args()
 
     if not os.path.exists(args.video):
-        print(f"[ERROR] Video not found: {args.video}")
+        logger.error("Video not found: %s", args.video)
         sys.exit(1)
 
     if args.device:
@@ -44,7 +49,7 @@ def main():
 
     cap = cv2.VideoCapture(args.video)
     if not cap.isOpened():
-        print(f"[ERROR] Cannot open video: {args.video}")
+        logger.error("Cannot open video: %s", args.video)
         sys.exit(1)
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -53,7 +58,7 @@ def main():
     height       = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     video_name   = os.path.basename(args.video)
 
-    print(f"\n[Main] Video : {video_name}  ({width}×{height} @ {fps:.1f}fps, {total_frames} frames)")
+    logger.info("Video %s %dx%d @ %.1f fps (%d frames)", video_name, width, height, fps, total_frames)
 
     # Initialise pipeline
     detector          = Detector()
@@ -146,6 +151,7 @@ def main():
         fps=fps,
         video_name=video_name,
     )
+    logger.info("CV analysis complete for %s", video_name)
     reporter.print_summary(summary, detection_stats)
 
 

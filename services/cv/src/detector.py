@@ -1,11 +1,17 @@
 """YOLO-based enemy and crosshair detection."""
 
 import os
+import sys
 import cv2
 import numpy as np
 from ultralytics import YOLO
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 import config
+from services.logging import configure_logging, get_logger
+
+configure_logging()
+logger = get_logger("services.cv.detector")
 
 
 class Detector:
@@ -13,13 +19,14 @@ class Detector:
         if os.path.exists(config.MODEL_PATH):
             self.model = YOLO(config.MODEL_PATH)
             self._fallback = False
-            print(f"[Detector] Loaded custom weights: {config.MODEL_PATH}")
+            logger.info("Loaded custom weights: %s", config.MODEL_PATH)
         else:
             self.model = YOLO(config.FALLBACK_MODEL)
             self._fallback = True
-            print(
-                f"[Detector] Custom weights not found at '{config.MODEL_PATH}'. "
-                f"Falling back to {config.FALLBACK_MODEL} — COCO 'person' class mapped to 'enemy'."
+            logger.warning(
+                "Custom weights not found at '%s'. Falling back to %s — COCO 'person' class mapped to 'enemy'.",
+                config.MODEL_PATH,
+                config.FALLBACK_MODEL,
             )
 
         self.conf = config.CONFIDENCE_THRESHOLD

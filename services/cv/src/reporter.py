@@ -8,15 +8,21 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import csv
 from collections import Counter, defaultdict
 from dataclasses import asdict
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 import cv2
 import numpy as np
 
 import config
+from services.logging import configure_logging, get_logger
 from src.aim_analyzer import MistakeEvent, EngagementWindow
+
+configure_logging()
+logger = get_logger("services.cv.reporter")
 
 
 MISTAKE_LABELS = {
@@ -205,7 +211,7 @@ class Reporter:
             json_path = base + "_report.json"
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(summary, f, indent=2)
-            print(f"[Reporter] JSON report → {json_path}")
+            logger.info("Reporter JSON report written to %s", json_path)
 
         if fmt in ("csv", "both"):
             csv_path = base + "_events.csv"

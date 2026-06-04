@@ -11,8 +11,11 @@ import anthropic
 from dotenv import load_dotenv
 
 from contracts.schemas import RiotReport, CVReport, CoachingReport
+from services.logging import configure_logging, get_logger
 
 load_dotenv()
+configure_logging()
+logger = get_logger("services.llm.coach")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 MODEL             = os.getenv("LLM_MODEL", "claude-haiku-4-5")
@@ -79,10 +82,13 @@ async def generate_coaching_report(
 ) -> CoachingReport:
     """Call Claude and parse the JSON response into a CoachingReport."""
     if not ANTHROPIC_API_KEY:
+        logger.error("ANTHROPIC_API_KEY is not set")
         raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
 
+    logger.info("Generating coaching report for %s#%s using model=%s", riot.game_name, riot.tag_line, MODEL)
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     prompt = build_prompt(riot, cv)
+    logger.debug("Built coaching prompt length=%d", len(prompt))
 
     message = client.messages.create(
         model=MODEL,
@@ -102,6 +108,7 @@ async def generate_coaching_report(
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError:
+        logger.warning("Claude response not valid JSON, retrying once")
         # Retry once with an explicit nudge
         retry_msg = client.messages.create(
             model=MODEL,

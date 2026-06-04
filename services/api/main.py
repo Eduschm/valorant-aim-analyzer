@@ -25,7 +25,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+from services.logging import configure_logging, get_logger
+
 load_dotenv()
+configure_logging()
+logger = get_logger("services.api.main")
 
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
@@ -47,6 +51,7 @@ def _make_token(user_id: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0")
+logger.info("Starting API app: DEV_MODE=%s", DEV_MODE)
 
 app.add_middleware(
     CORSMiddleware,
@@ -80,14 +85,17 @@ async def submit_analysis(body: AnalyzeRequest, background_tasks: BackgroundTask
     Runs the riot + LLM pipeline in the background and returns a report_id.
     Poll GET /api/v1/report/{report_id} until status == "done".
     """
+    logger.info("Received analysis request for %s", body.riot_id)
     record = store.create(body.riot_id)
     background_tasks.add_task(_run_analysis, record.id, body.riot_id)
+    logger.info("Queued background analysis report=%s riot_id=%s", record.id, body.riot_id)
     return AnalyzeResponse(report_id=record.id, status="queued")
 
 
 async def _run_analysis(report_id: str, riot_id: str):
     """Background task: fetch Riot data → generate coaching → store result."""
     store.update(report_id, status="processing")
+    logger.info("Background task start report=%s riot_id=%s", report_id, riot_id)
     try:
         # Works whether run from repo root (services.riot) or services/api (sys.path set above)
         try:
@@ -107,7 +115,9 @@ async def _run_analysis(report_id: str, riot_id: str):
             riot_report=dataclasses.asdict(riot),
             coaching=dataclasses.asdict(coaching),
         )
+        logger.info("Background task complete report=%s riot_id=%s status=done", report_id, riot_id)
     except Exception as exc:
+        logger.exception("Background task failed report=%s riot_id=%s", report_id, riot_id)
         store.update(report_id, status="error", error=str(exc))
 
 
@@ -116,7 +126,9 @@ async def get_report(report_id: str):
     """Poll for report status + results."""
     record = store.get(report_id)
     if record is None:
+        logger.warning("Report not found: %s", report_id)
         raise HTTPException(status_code=404, detail="Report not found")
+    logger.debug("Returning report %s status=%s", report_id, record.status)
 
     return ReportResponse(
         report_id=record.id,
