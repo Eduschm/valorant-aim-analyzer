@@ -15,80 +15,130 @@ AI-powered aim analysis for Valorant. Paste a Riot ID, get a coaching report in 
 
 ## Project structure
 
+**Services-first architecture** per [CLAUDE.md](CLAUDE.md). Each service is independent with its own code, tests, config, and README.
+
 ```
 valorant-aim-analyzer/
-├── contracts/schemas.py          shared typed contracts — all services import from here
-├── services/
-│   ├── cv/                       YOLO video analysis (standalone)
+├── services/                     4 independent services
+│   ├── api/                      FastAPI REST API — routes, job dispatch, auth stubs
+│   │   ├── main.py              entry point
+│   │   ├── tests/               pytest suite
+│   │   └── README.md            quick start + architecture
 │   ├── riot/                     Riot API client + match parser
+│   │   ├── service.py           main entry point
+│   │   ├── tests/               pytest suite  
+│   │   └── README.md            quick start + data flow
 │   ├── llm/                      Claude coaching report generator
-│   └── api/                      FastAPI backend — routes, job dispatch, auth stubs
-├── frontend/                     Next.js 14 app (App Router)
+│   │   ├── coach.py             main entry point
+│   │   ├── tests/               pytest suite
+│   │   └── README.md            quick start + config
+│   └── cv/                       YOLO video analysis (Phase 2)
+│       ├── main.py              CLI entry point
+│       ├── tests/               pytest suite
+│       └── README.md            quick start + models
+├── contracts/                    Shared type definitions
+│   ├── schemas.py               RiotReport, CoachingReport, etc.
+│   └── README.md                versioning + import guide
+├── frontend/                     Next.js 14 web app (App Router)
 │   ├── app/                      pages: /, /analysis/new, /analysis/[id], /tracker, /profile, /settings, /dashboard
-│   ├── components/               analysis, auth, dashboard, layout, tracker components
-│   └── lib/                      api.ts, storage.ts, mock fixtures, types
-├── scripts/                      train.py, label_tool.py, Colab training notebook
-├── data/                         training dataset (gitignored)
-├── AGENTS.md                     full agent handoff — read before building anything
-└── .env                          fill in keys (see Keys section)
+│   ├── components/               analysis, auth, dashboard, layout, tracker
+│   ├── lib/                      api.ts, logger.ts, storage.ts, store.ts, types.ts
+│   ├── __tests__/               Vitest + React Testing Library tests
+│   └── README.md                quick start + configuration
+├── scripts/                      Training and labeling utilities
+│   ├── train.py                 YOLOv8 training script
+│   ├── label_tool.py            annotation tool
+│   └── valorant_train_colab.ipynb  colab notebook
+├── DEV_GUIDE.md                 Quick reference for local dev
+├── AGENTS.md                     Full agent handoff — read before building
+├── CLAUDE.md                     Development principles and standards (READ FIRST)
+├── .env.example                  Environment variables template
+├── .env                          Local config (secrets, API keys) — gitignored
+├── pytest.ini                    Python test configuration
+├── requirements.txt              All Python dependencies
+└── dev.ps1, dev-frontend.ps1    Startup scripts with Node.js PATH fix
 ```
+
+### Service Dependencies
+
+```
+frontend          → api
+   ↓               ↓
+   └─→ (calls)   riot  (fetches Valorant data)
+                 llm   (generates coaching)
+                 cv    (analyzes video — Phase 2)
+```
+
+**Contract boundary**: All inter-service communication via `contracts/schemas.py`. No service imports another's internals.
 
 ---
 
 ## Running locally
 
-### 1. Install dependencies
+### Quick start (both backend and frontend)
 
+**Terminal 1** — Backend API:
 ```powershell
-# Root (all services)
-pip install -r requirements.txt
-
-# Frontend
-cd frontend
-npm install
+.\dev.ps1
 ```
+Server runs on `http://localhost:8000`
 
-### 2. Set up environment
-
+**Terminal 2** — Frontend:
 ```powershell
-# Copy example and fill in at minimum RIOT_API_KEY + ANTHROPIC_API_KEY
-copy .env .env        # already exists — edit it directly
+.\dev-frontend.ps1
 ```
+App runs on `http://localhost:3000`
 
-Minimum required keys:
-```
-RIOT_API_KEY=RGAPI-...          # from developer.riotgames.com
-ANTHROPIC_API_KEY=sk-ant-...    # from console.anthropic.com
-DEV_MODE=true                   # enables account bypass
-```
+See [DEV_GUIDE.md](DEV_GUIDE.md) for more details.
 
-### 3. Start backend
+### Step-by-step setup
 
+1. **Install dependencies**
+   ```powershell
+   pip install -r requirements.txt      # All Python services
+   cd frontend && npm install            # Frontend
+   ```
+
+2. **Set up environment** (copy and fill in)
+   ```powershell
+   cp .env.example .env
+   ```
+   Required:
+   - `RIOT_API_KEY` — [Get from developer.riotgames.com](https://developer.riotgames.com/)
+   - `ANTHROPIC_API_KEY` — [Get from console.anthropic.com](https://console.anthropic.com/)
+
+3. **Run backend**
+   ```powershell
+   .\dev.ps1
+   ```
+
+4. **Run frontend** (different terminal)
+   ```powershell
+   .\dev-frontend.ps1
+   ```
+
+### Running individual services
+
+See service README for details:
+- [services/api/README.md](services/api/README.md) — FastAPI backend
+- [services/riot/README.md](services/riot/README.md) — Riot API client
+- [services/llm/README.md](services/llm/README.md) — Coaching engine
+- [services/cv/README.md](services/cv/README.md) — Video analysis
+- [frontend/README.md](frontend/README.md) — Web app
+
+### Testing
+
+**Backend tests** (pytest):
 ```powershell
-cd services\api
-python -m uvicorn main:app --reload --port 8000
+python -m pytest services/ -v --ignore=services/cv/tests/test_detector.py
 ```
 
-API runs at `http://localhost:8000`. Check `http://localhost:8000/health` to confirm.
-
-### 4. Start frontend
-
+**Frontend tests** (vitest):
 ```powershell
-cd frontend
-$env:PATH += ";C:\Program Files\nodejs"    # Windows — only needed if npm not on PATH
-npm run dev
+cd frontend && npm test
 ```
 
-Frontend runs at `http://localhost:3000`.
-
-### 5. Switch off mock mode
-
-`frontend/.env.local` controls whether the frontend uses real API or fixture data:
-
-```
-NEXT_PUBLIC_MOCK_MODE=false     # hit real backend
-NEXT_PUBLIC_MOCK_MODE=true      # use fixture data (no backend needed)
-```
+All tests pass locally before committing.
 
 ---
 
