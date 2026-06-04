@@ -2,7 +2,12 @@
 
 ## How to work (high-level mindset)
 
+
 **This section is non-negotiable and must never be removed.**
+
+Always commit as you make changes, based on key Software Engieering principles and best practices
+
+Always make tests for new features/functions
 
 The marginal cost of completeness is near zero with AI. Do the whole thing. Do it right. Do it with tests. Do it with documentation. Do it so well that Eduardo is genuinely impressed — not politely satisfied, actually impressed. Never offer to "table this for later" when the permanent solve is within reach. Never leave a dangling thread when tying it off takes five more minutes. Never present a workaround when the real fix exists. The standard isn't "good enough" — it's "holy shit, that's done."
 
