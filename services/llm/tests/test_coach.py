@@ -66,12 +66,11 @@ async def test_generate_coaching_report_parses_valid_json():
     mock_message = MagicMock()
     mock_message.content = [mock_content]
 
-    with patch("services.llm.coach.anthropic.Anthropic") as MockClient:
+    with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
+         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
         instance = MockClient.return_value
         instance.messages.create.return_value = mock_message
-
-        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}):
-            report = await generate_coaching_report(RIOT_REPORT)
+        report = await generate_coaching_report(RIOT_REPORT)
 
     assert isinstance(report, CoachingReport)
     assert "21.5%" in report.top_weakness
@@ -87,12 +86,11 @@ async def test_generate_coaching_report_retries_on_bad_json():
     mock_message_bad  = MagicMock(); mock_message_bad.content  = [bad_response]
     mock_message_good = MagicMock(); mock_message_good.content = [good_response]
 
-    with patch("services.llm.coach.anthropic.Anthropic") as MockClient:
+    with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
+         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
         instance = MockClient.return_value
         instance.messages.create.side_effect = [mock_message_bad, mock_message_good]
-
-        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}):
-            report = await generate_coaching_report(RIOT_REPORT)
+        report = await generate_coaching_report(RIOT_REPORT)
 
     assert instance.messages.create.call_count == 2
     assert isinstance(report, CoachingReport)
@@ -104,11 +102,10 @@ async def test_generate_coaching_report_strips_markdown_fence():
     mock_content = MagicMock(); mock_content.text = fenced
     mock_message = MagicMock(); mock_message.content = [mock_content]
 
-    with patch("services.llm.coach.anthropic.Anthropic") as MockClient:
+    with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
+         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
         instance = MockClient.return_value
         instance.messages.create.return_value = mock_message
-
-        with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "test-key"}):
-            report = await generate_coaching_report(RIOT_REPORT)
+        report = await generate_coaching_report(RIOT_REPORT)
 
     assert isinstance(report, CoachingReport)

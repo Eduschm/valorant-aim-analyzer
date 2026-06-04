@@ -50,31 +50,31 @@ export default function TrackerPage() {
 
       {/* Header */}
       <div>
-        <p className="text-xs uppercase tracking-widest text-val-muted mb-2">Tracker</p>
+        <p className="text-xs uppercase tracking-widest text-[#42495A] mb-2">Tracker</p>
         <div className="flex items-baseline gap-3">
           <h1 className="font-display text-3xl font-bold tracking-tight">
-            {current?.game_name ?? '—'}<span className="text-val-muted text-xl">#{current?.tag_line}</span>
+            {current?.game_name ?? '—'}<span className="text-[#42495A] text-xl">#{current?.tag_line}</span>
           </h1>
           {current?.current_rank && (
-            <span className="text-val-red text-sm font-semibold">{current.current_rank}</span>
+            <span className="text-[#FF4655] text-sm font-semibold">{current.current_rank}</span>
           )}
           {current?.rank_delta !== undefined && (
-            <span className={`text-xs ${current.rank_delta >= 0 ? 'text-val-green' : 'text-val-red'}`}>
+            <span className={`text-xs ${current.rank_delta >= 0 ? 'text-green-400' : 'text-[#FF4655]'}`}>
               {current.rank_delta >= 0 ? '+' : ''}{current.rank_delta} MMR
             </span>
           )}
         </div>
         {!riotId && (
-          <p className="text-val-muted text-xs mt-1">
-            Showing latest analysis. <Link href="/analysis/new" className="text-val-red hover:underline">Run a new one →</Link>
+          <p className="text-[#42495A] text-xs mt-1">
+            Showing latest analysis. <Link href="/analysis/new" className="text-[#FF4655] hover:underline">Run a new one →</Link>
           </p>
         )}
       </div>
 
       {/* Trend charts */}
       {chartData.length > 1 && (
-        <div className="border border-val-border bg-val-surface p-5">
-          <p className="text-xs uppercase tracking-widest text-val-muted mb-4">HS% over analyses</p>
+        <div className="border border-[#1F2130] bg-[#111318] p-5">
+          <p className="text-xs uppercase tracking-widest text-[#42495A] mb-4">HS% over analyses</p>
           <ResponsiveContainer width="100%" height={120}>
             <LineChart data={chartData}>
               <XAxis dataKey="label" tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -91,7 +91,7 @@ export default function TrackerPage() {
       )}
 
       {/* Stats trends */}
-      <div className="grid grid-cols-3 gap-px bg-val-border">
+      <div className="grid grid-cols-3 gap-px bg-[#1F2130]">
         <StatsTrend
           label="Headshot %"
           current={current?.avg_headshot_pct ?? 0}
@@ -114,12 +114,12 @@ export default function TrackerPage() {
 
       {/* Match log */}
       <div>
-        <p className="text-xs uppercase tracking-widest text-val-muted mb-3">
+        <p className="text-xs uppercase tracking-widest text-[#42495A] mb-3">
           Match log ({matches.length} matches)
         </p>
         {matches.length > 0
           ? <MatchTable matches={matches} />
-          : <p className="text-val-muted text-sm border border-val-border bg-val-surface p-6 text-center">No match data. Run an analysis first.</p>
+          : <p className="text-[#42495A] text-sm border border-[#1F2130] bg-[#111318] p-6 text-center">No match data. Run an analysis first.</p>
         }
       </div>
 

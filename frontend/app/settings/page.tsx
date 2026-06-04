@@ -4,8 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clearAnalyses } from '@/lib/storage'
 
-const DEV_MODE  = process.env.NEXT_PUBLIC_MOCK_MODE !== 'true'   // true when using real API
-
 export default function SettingsPage() {
   const router = useRouter()
   const [riotId,     setRiotId]     = useState('')
@@ -52,65 +50,65 @@ export default function SettingsPage() {
     <div className="p-8 max-w-xl space-y-6 fade-in">
 
       <div>
-        <p className="text-xs uppercase tracking-widest text-val-muted mb-2">Settings</p>
+        <p className="text-xs uppercase tracking-widest text-[#42495A] mb-2">Settings</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">Account</h1>
       </div>
 
       {/* Account */}
-      <div className="border border-val-border bg-val-surface p-6 space-y-4">
-        <p className="text-xs uppercase tracking-widest text-val-muted">Account info</p>
+      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-4">
+        <p className="text-xs uppercase tracking-widest text-[#42495A]">Account info</p>
         <div>
-          <label className="block text-val-muted text-xs uppercase tracking-widest mb-2">Email</label>
+          <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Email</label>
           <input value="dev@localhost" disabled
-            className="w-full bg-val-bg border border-val-border text-val-muted text-sm px-4 py-2.5 disabled:opacity-50" />
-          <p className="text-val-muted text-xs mt-1">Auth not yet enabled — email is fixed.</p>
+            className="w-full bg-[#0A0B0F] border border-[#1F2130] text-[#42495A] text-sm px-4 py-2.5 disabled:opacity-50" />
+          <p className="text-[#42495A] text-xs mt-1">Auth not yet enabled — email is fixed.</p>
         </div>
         <div>
-          <label className="block text-val-muted text-xs uppercase tracking-widest mb-2">Link Riot ID</label>
+          <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Link Riot ID</label>
           <div className="flex gap-2">
             <input
               value={riotId}
               onChange={e => setRiotId(e.target.value)}
               placeholder="PlayerName#NA1"
-              className="flex-1 bg-val-bg border border-val-border text-val-text text-sm px-4 py-2.5 focus:outline-none focus:border-val-red transition placeholder-val-muted font-mono"
+              className="flex-1 bg-[#0A0B0F] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 focus:outline-none focus:border-[#FF4655] transition placeholder-[#42495A] font-mono"
             />
             <button onClick={handleLinkRiotId} disabled={savingRiot}
-              className="clip-corner-sm bg-val-red text-white text-xs font-semibold px-4 py-2 hover:bg-val-red-dark transition disabled:opacity-40">
+              className="clip-corner-sm bg-[#FF4655] text-white text-xs font-semibold px-4 py-2 hover:bg-[#CC3542] transition disabled:opacity-40">
               {savingRiot ? '...' : 'Link'}
             </button>
           </div>
-          {riotMsg && <p className="text-val-subtle text-xs mt-1">{riotMsg}</p>}
+          {riotMsg && <p className="text-[#7A8496] text-xs mt-1">{riotMsg}</p>}
         </div>
       </div>
 
       {/* Usage */}
-      <div className="border border-val-border bg-val-surface p-6 space-y-3">
+      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-val-muted">Plan</p>
-          <span className="text-xs border border-val-border text-val-subtle px-2 py-0.5">Free tier</span>
+          <p className="text-xs uppercase tracking-widest text-[#42495A]">Plan</p>
+          <span className="text-xs border border-[#1F2130] text-[#7A8496] px-2 py-0.5">Free tier</span>
         </div>
-        <p className="text-val-subtle text-sm">10 analyses / month · 3 min clip cap</p>
+        <p className="text-[#7A8496] text-sm">10 analyses / month · 3 min clip cap</p>
         <button disabled
-          className="clip-corner-sm text-xs border border-val-border text-val-muted px-4 py-2 opacity-50 cursor-not-allowed">
+          className="clip-corner-sm text-xs border border-[#1F2130] text-[#42495A] px-4 py-2 opacity-50 cursor-not-allowed">
           Upgrade — coming soon
         </button>
       </div>
 
       {/* Dev bypass */}
-      <div className="border border-val-border bg-val-surface p-6 space-y-3">
-        <p className="text-xs uppercase tracking-widest text-val-muted">Developer</p>
+      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-3">
+        <p className="text-xs uppercase tracking-widest text-[#42495A]">Developer</p>
         <button onClick={handleDevBypass} disabled={devLoading}
-          className="w-full text-left border border-val-border text-val-subtle text-sm py-2.5 px-4 hover:border-val-red/40 hover:text-val-text transition disabled:opacity-40">
+          className="w-full text-left border border-[#1F2130] text-[#7A8496] text-sm py-2.5 px-4 hover:border-[#FF4655]/40 hover:text-[#F0F1F5] transition disabled:opacity-40">
           {devLoading ? 'Creating session...' : 'Create dev session (skip auth)'}
         </button>
-        {devMsg && <p className="text-val-subtle text-xs">{devMsg}</p>}
-        <p className="text-val-muted text-xs">Requires API running at localhost:8000 with DEV_MODE=true</p>
+        {devMsg && <p className="text-[#7A8496] text-xs">{devMsg}</p>}
+        <p className="text-[#42495A] text-xs">Requires API running at localhost:8000 with DEV_MODE=true</p>
       </div>
 
       {/* Sign out */}
-      <div className="border border-val-border bg-val-surface p-6">
+      <div className="border border-[#1F2130] bg-[#111318] p-6">
         <button onClick={handleSignOut}
-          className="text-val-red text-sm hover:underline">
+          className="text-[#FF4655] text-sm hover:underline">
           Sign out and clear local data
         </button>
       </div>

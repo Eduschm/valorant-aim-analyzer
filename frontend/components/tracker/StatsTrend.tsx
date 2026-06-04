@@ -17,17 +17,17 @@ export function StatsTrend({ label, current, prev, format }: StatsTrendProps) {
   const dn = delta !== null && delta < 0
 
   return (
-    <div className="bg-val-surface border border-val-border p-5">
-      <p className="text-xs uppercase tracking-widest text-val-muted mb-3">{label}</p>
-      <p className="font-display text-4xl font-bold text-val-text mb-2">{format(current)}</p>
+    <div className="bg-[#111318] border border-[#1F2130] p-5">
+      <p className="text-xs uppercase tracking-widest text-[#42495A] mb-3">{label}</p>
+      <p className="font-display text-4xl font-bold text-[#F0F1F5] mb-2">{format(current)}</p>
       {delta !== null ? (
-        <div className={`flex items-center gap-1 text-xs ${up ? 'text-val-green' : dn ? 'text-val-red' : 'text-val-muted'}`}>
+        <div className={`flex items-center gap-1 text-xs ${up ? 'text-green-400' : dn ? 'text-[#FF4655]' : 'text-[#42495A]'}`}>
           {up ? <TrendingUp className="w-3 h-3" /> : dn ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
           {up ? '+' : ''}{format(delta)} vs last analysis
-          {pctChg !== null && <span className="text-val-muted ml-1">({pctChg > 0 ? '+' : ''}{pctChg.toFixed(1)}%)</span>}
+          {pctChg !== null && <span className="text-[#42495A] ml-1">({pctChg > 0 ? '+' : ''}{pctChg.toFixed(1)}%)</span>}
         </div>
       ) : (
-        <p className="text-val-muted text-xs">First analysis</p>
+        <p className="text-[#42495A] text-xs">First analysis</p>
       )}
     </div>
   )

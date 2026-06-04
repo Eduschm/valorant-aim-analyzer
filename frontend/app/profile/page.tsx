@@ -3,18 +3,18 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TrendingUp, TrendingDown, Minus, ArrowRight } from 'lucide-react'
-import { getAllAnalyses, StoredAnalysis, clearAnalyses } from '@/lib/storage'
+import { getAllAnalyses, StoredAnalysis } from '@/lib/storage'
 import { MOCK_REPORT } from '@/lib/mock/analysis'
 
 const FREE_LIMIT = 10
 
 function Delta({ current, prev, format }: { current: number; prev: number | null; format: (v: number) => string }) {
-  if (prev === null) return <span className="text-val-muted text-xs">First analysis</span>
+  if (prev === null) return <span className="text-[#42495A] text-xs">First analysis</span>
   const d  = current - prev
   const up = d > 0
   const dn = d < 0
   return (
-    <span className={`inline-flex items-center gap-1 text-xs ${up ? 'text-val-green' : dn ? 'text-val-red' : 'text-val-muted'}`}>
+    <span className={`inline-flex items-center gap-1 text-xs ${up ? 'text-green-400' : dn ? 'text-[#FF4655]' : 'text-[#42495A]'}`}>
       {up ? <TrendingUp className="w-3 h-3" /> : dn ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
       {up ? '+' : ''}{format(d)} since first
     </span>
@@ -52,32 +52,32 @@ export default function ProfilePage() {
     <div className="p-8 max-w-2xl space-y-6 fade-in">
 
       <div>
-        <p className="text-xs uppercase tracking-widest text-val-muted mb-2">Profile</p>
+        <p className="text-xs uppercase tracking-widest text-[#42495A] mb-2">Profile</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">Your Account</h1>
       </div>
 
       {/* Identity */}
-      <div className="border border-val-border bg-val-surface p-6 space-y-3">
-        <p className="text-xs uppercase tracking-widest text-val-muted">Identity</p>
+      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-3">
+        <p className="text-xs uppercase tracking-widest text-[#42495A]">Identity</p>
         <div className="flex items-baseline gap-3">
           <span className="font-display text-2xl font-bold">
-            {riot?.game_name ?? '—'}<span className="text-val-muted">#{riot?.tag_line}</span>
+            {riot?.game_name ?? '—'}<span className="text-[#42495A]">#{riot?.tag_line}</span>
           </span>
-          {riot?.current_rank && <span className="text-val-red text-sm">{riot.current_rank}</span>}
+          {riot?.current_rank && <span className="text-[#FF4655] text-sm">{riot.current_rank}</span>}
         </div>
-        <p className="text-val-muted text-xs">
+        <p className="text-[#42495A] text-xs">
           {analyses.length} analysis{analyses.length !== 1 ? 'es' : ''} saved
           {latest && ` · last run ${new Date(latest.saved_at).toLocaleDateString()}`}
         </p>
-        <Link href="/tracker" className="inline-flex items-center gap-1 text-val-red text-xs hover:underline">
+        <Link href="/tracker" className="inline-flex items-center gap-1 text-[#FF4655] text-xs hover:underline">
           View tracker <ArrowRight className="w-3 h-3" />
         </Link>
       </div>
 
       {/* Progress */}
-      <div className="border border-val-border bg-val-surface p-6 space-y-4">
-        <p className="text-xs uppercase tracking-widest text-val-muted">Progress since first analysis</p>
-        <div className="grid grid-cols-3 gap-px bg-val-border">
+      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-4">
+        <p className="text-xs uppercase tracking-widest text-[#42495A]">Progress since first analysis</p>
+        <div className="grid grid-cols-3 gap-px bg-[#1F2130]">
           {[
             {
               label: 'HS%',
@@ -98,9 +98,9 @@ export default function ProfilePage() {
               format:  (v: number) => `${v.toFixed(0)}%`,
             },
           ].map(({ label, current, prev, format }) => (
-            <div key={label} className="bg-val-surface p-4">
-              <p className="text-val-muted text-xs uppercase tracking-widest mb-2">{label}</p>
-              <p className="font-display text-2xl font-bold text-val-text mb-1">{format(current)}</p>
+            <div key={label} className="bg-[#111318] p-4">
+              <p className="text-[#42495A] text-xs uppercase tracking-widest mb-2">{label}</p>
+              <p className="font-display text-2xl font-bold text-[#F0F1F5] mb-1">{format(current)}</p>
               <Delta current={current} prev={prev} format={format} />
             </div>
           ))}
@@ -108,20 +108,20 @@ export default function ProfilePage() {
       </div>
 
       {/* Usage */}
-      <div className="border border-val-border bg-val-surface p-6 space-y-3">
+      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-widest text-val-muted">Usage</p>
-          <span className="text-xs border border-val-border text-val-subtle px-2 py-0.5">Free tier</span>
+          <p className="text-xs uppercase tracking-widest text-[#42495A]">Usage</p>
+          <span className="text-xs border border-[#1F2130] text-[#7A8496] px-2 py-0.5">Free tier</span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-val-subtle">{usedThisMonth} of {FREE_LIMIT} analyses this month</span>
-          <span className="text-val-muted text-xs">{FREE_LIMIT - usedThisMonth} remaining</span>
+          <span className="text-[#7A8496]">{usedThisMonth} of {FREE_LIMIT} analyses this month</span>
+          <span className="text-[#42495A] text-xs">{FREE_LIMIT - usedThisMonth} remaining</span>
         </div>
-        <div className="w-full bg-val-border h-1">
-          <div className="h-1 bg-val-red transition-all" style={{ width: `${Math.min(100, (usedThisMonth / FREE_LIMIT) * 100)}%` }} />
+        <div className="w-full bg-[#1F2130] h-1">
+          <div className="h-1 bg-[#FF4655] transition-all" style={{ width: `${Math.min(100, (usedThisMonth / FREE_LIMIT) * 100)}%` }} />
         </div>
         <Link href="/settings"
-          className="clip-corner-sm inline-flex items-center gap-2 bg-val-red text-white text-xs font-semibold px-3 py-1.5 hover:bg-val-red-dark transition mt-1">
+          className="clip-corner-sm inline-flex items-center gap-2 bg-[#FF4655] text-white text-xs font-semibold px-3 py-1.5 hover:bg-[#CC3542] transition mt-1">
           Upgrade for unlimited →
         </Link>
       </div>

@@ -24,12 +24,12 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 bg-val-surface border-r border-val-border flex flex-col flex-shrink-0">
+    <aside className="w-56 bg-[#111318] border-r border-[#1F2130] flex flex-col flex-shrink-0">
 
       {/* Logo */}
-      <Link href="/" className="px-6 py-5 border-b border-val-border">
-        <span className="font-display text-base font-bold tracking-widest text-val-red uppercase">
-          AimLab<span className="text-val-text">VAL</span>
+      <Link href="/" className="px-6 py-5 border-b border-[#1F2130]">
+        <span className="font-display text-base font-bold tracking-widest text-[#FF4655] uppercase">
+          AimLab<span className="text-[#F0F1F5]">VAL</span>
         </span>
       </Link>
 
@@ -43,8 +43,8 @@ export function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-6 py-2.5 text-sm transition
                 ${active
-                  ? 'border-l-2 border-val-red text-val-text bg-val-surface-2'
-                  : 'border-l-2 border-transparent text-val-subtle hover:text-val-text hover:bg-val-surface-2'
+                  ? 'border-l-2 border-[#FF4655] text-[#F0F1F5] bg-[#181A22]'
+                  : 'border-l-2 border-transparent text-[#7A8496] hover:text-[#F0F1F5] hover:bg-[#181A22]'
                 }`}
             >
               <Icon className="w-4 h-4 flex-shrink-0" />
@@ -57,7 +57,7 @@ export function Sidebar() {
       {/* Sign out */}
       <button
         onClick={handleSignOut}
-        className="flex items-center gap-3 px-6 py-4 text-sm text-val-muted hover:text-val-subtle transition border-t border-val-border"
+        className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-[#7A8496] transition border-t border-[#1F2130]"
       >
         <LogOut className="w-4 h-4" />
         Sign out

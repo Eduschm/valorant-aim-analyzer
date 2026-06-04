@@ -89,14 +89,14 @@ export function AnalysisForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
 
       {error && (
-        <div className="flex items-start gap-3 border border-val-red/30 bg-val-red/5 px-4 py-3 text-val-red text-sm">
+        <div className="flex items-start gap-3 border border-[#FF4655]/30 bg-[#FF4655]/5 px-4 py-3 text-[#FF4655] text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {error}
         </div>
       )}
 
       {/* Riot ID input + autocomplete */}
       <div>
-        <label className="block text-val-muted text-xs uppercase tracking-widest mb-2">Riot ID</label>
+        <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Riot ID</label>
         <div className="relative" ref={dropRef}>
           <input
             type="text"
@@ -105,15 +105,15 @@ export function AnalysisForm() {
             onFocus={() => suggestions.length > 0 && setShowDrop(true)}
             placeholder="PlayerName#NA1"
             autoFocus
-            className="w-full bg-val-surface border border-val-border text-val-text text-lg px-4 py-4 focus:outline-none focus:border-val-red transition placeholder-val-muted font-mono"
+            className="w-full bg-[#111318] border border-[#1F2130] text-[#F0F1F5] text-lg px-4 py-4 focus:outline-none focus:border-[#FF4655] transition placeholder-[#42495A] font-mono"
           />
           {showDrop && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full border border-val-border bg-val-surface-2 z-10 shadow-red-glow-sm">
+            <div className="absolute left-0 right-0 top-full border border-[#1F2130] bg-[#181A22] z-10 shadow-red-glow-sm">
               {suggestions.map((s, i) => (
                 <button type="button" key={i}
                   onClick={() => pickSuggestion(s)}
-                  className="w-full text-left px-4 py-2.5 text-sm text-val-text hover:bg-val-surface font-mono border-b border-val-border last:border-0 transition">
-                  {s.game_name}<span className="text-val-muted">#{s.tag_line}</span>
+                  className="w-full text-left px-4 py-2.5 text-sm text-[#F0F1F5] hover:bg-[#111318] font-mono border-b border-[#1F2130] last:border-0 transition">
+                  {s.game_name}<span className="text-[#42495A]">#{s.tag_line}</span>
                 </button>
               ))}
             </div>
@@ -124,13 +124,13 @@ export function AnalysisForm() {
         <div className="flex flex-wrap gap-2 mt-2">
           {lastUsed && lastUsed !== riotId && (
             <button type="button" onClick={() => setRiotId(lastUsed)}
-              className="text-xs text-val-subtle border border-val-border px-2 py-1 hover:border-val-red/50 hover:text-val-text transition font-mono">
+              className="text-xs text-[#7A8496] border border-[#1F2130] px-2 py-1 hover:border-[#FF4655]/50 hover:text-[#F0F1F5] transition font-mono">
               ↩ {lastUsed}
             </button>
           )}
           {EXAMPLES.map(ex => (
             <button type="button" key={ex} onClick={() => setRiotId(ex)}
-              className="text-xs text-val-muted border border-val-border px-2 py-1 hover:border-val-border-2 transition font-mono">
+              className="text-xs text-[#42495A] border border-[#1F2130] px-2 py-1 hover:border-[#2A2D40] transition font-mono">
               {ex}
             </button>
           ))}
@@ -139,30 +139,30 @@ export function AnalysisForm() {
 
       {/* Region */}
       <div>
-        <label className="block text-val-muted text-xs uppercase tracking-widest mb-2">Region</label>
+        <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Region</label>
         <div className="relative inline-block">
           <select value={region} onChange={e => setRegion(e.target.value)}
-            className="appearance-none bg-val-surface border border-val-border text-val-text text-sm px-4 py-2.5 pr-8 focus:outline-none focus:border-val-red transition cursor-pointer">
+            className="appearance-none bg-[#111318] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 pr-8 focus:outline-none focus:border-[#FF4655] transition cursor-pointer">
             {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-          <ChevronDown className="absolute right-2 top-3 w-4 h-4 text-val-muted pointer-events-none" />
+          <ChevronDown className="absolute right-2 top-3 w-4 h-4 text-[#42495A] pointer-events-none" />
         </div>
       </div>
 
       {/* What we analyze */}
-      <div className="border border-val-border bg-val-surface p-4">
-        <p className="text-val-muted text-xs uppercase tracking-widest mb-3">Analyzed</p>
-        <div className="grid grid-cols-2 gap-1.5 text-val-subtle text-sm">
+      <div className="border border-[#1F2130] bg-[#111318] p-4">
+        <p className="text-[#42495A] text-xs uppercase tracking-widest mb-3">Analyzed</p>
+        <div className="grid grid-cols-2 gap-1.5 text-[#7A8496] text-sm">
           {['Headshot %', 'ADR', 'Win rate', 'Top agent', 'Top weapon', 'Rank delta'].map(item => (
             <div key={item} className="flex items-center gap-2">
-              <div className="w-1 h-1 bg-val-red rounded-full flex-shrink-0" /> {item}
+              <div className="w-1 h-1 bg-[#FF4655] rounded-full flex-shrink-0" /> {item}
             </div>
           ))}
         </div>
       </div>
 
       <button type="submit" disabled={loading || !riotId}
-        className="clip-corner w-full flex items-center justify-center gap-2 bg-val-red text-white font-semibold py-4 text-sm hover:bg-val-red-dark transition disabled:opacity-40 shadow-red-glow-sm">
+        className="clip-corner w-full flex items-center justify-center gap-2 bg-[#FF4655] text-white font-semibold py-4 text-sm hover:bg-[#CC3542] transition disabled:opacity-40 shadow-red-glow-sm">
         {loading ? (
           <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing...</>
         ) : (

@@ -26,13 +26,13 @@ export function QuickStats() {
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-px bg-val-border">
+    <div className="grid grid-cols-3 gap-px bg-[#1F2130]">
       {cards.map(({ label, value, icon: Icon }) => (
-        <div key={label} className="bg-val-surface p-5">
-          <div className="flex items-center gap-2 text-val-muted text-xs uppercase tracking-widest mb-2">
+        <div key={label} className="bg-[#111318] p-5">
+          <div className="flex items-center gap-2 text-[#42495A] text-xs uppercase tracking-widest mb-2">
             <Icon className="w-3 h-3" /> {label}
           </div>
-          <div className="font-display text-3xl font-bold text-val-text">{value}</div>
+          <div className="font-display text-3xl font-bold text-[#F0F1F5]">{value}</div>
         </div>
       ))}
     </div>

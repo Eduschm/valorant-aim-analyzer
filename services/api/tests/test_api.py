@@ -70,9 +70,10 @@ def test_get_report_not_found(client):
 
 def test_full_analysis_flow(client):
     """Submit → poll until done (with mocked services)."""
+    # Patch at the source modules — they are imported inside _run_analysis() each call
     with (
-        patch("services.api.main.get_riot_report",   new=AsyncMock(return_value=MOCK_RIOT_REPORT)),
-        patch("services.api.main.generate_coaching_report", new=AsyncMock(return_value=MOCK_COACHING)),
+        patch("services.riot.service.get_riot_report",   new=AsyncMock(return_value=MOCK_RIOT_REPORT)),
+        patch("services.llm.coach.generate_coaching_report", new=AsyncMock(return_value=MOCK_COACHING)),
     ):
         # Submit
         resp = client.post("/api/v1/analyze", json={"riot_id": "TestPlayer#NA1"})
@@ -101,3 +102,65 @@ def test_auth_endpoints_return_501(client):
 
     resp = client.post("/api/v1/auth/riot-id", json={"riot_id": "Name#TAG"})
     assert resp.status_code == 501
+
+
+# ------------------------------------------------------------------ #
+# Dev bypass
+# ------------------------------------------------------------------ #
+
+def test_dev_create_account_returns_token(monkeypatch, client):
+    import services.api.main as main_mod
+    monkeypatch.setattr(main_mod, "DEV_MODE", True)
+    resp = client.post("/api/v1/dev/create-account", json={"email": "dev@test.com"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "token" in data
+    assert data["user"]["email"] == "dev@test.com"
+
+
+def test_dev_create_account_disabled_returns_404(monkeypatch, client):
+    import services.api.main as main_mod
+    monkeypatch.setattr(main_mod, "DEV_MODE", False)
+    resp = client.post("/api/v1/dev/create-account", json={"email": "x@x.com"})
+    assert resp.status_code == 404
+
+
+def test_dev_get_session_valid_token(monkeypatch, client):
+    import services.api.main as main_mod
+    monkeypatch.setattr(main_mod, "DEV_MODE", True)
+    # Create account first
+    create = client.post("/api/v1/dev/create-account", json={"email": "s@s.com"})
+    token = create.json()["token"]
+    # Look it up
+    resp = client.get(f"/api/v1/dev/session?token={token}")
+    assert resp.status_code == 200
+    assert resp.json()["authenticated"] is True
+
+
+def test_dev_get_session_invalid_token(monkeypatch, client):
+    import services.api.main as main_mod
+    monkeypatch.setattr(main_mod, "DEV_MODE", True)
+    resp = client.get("/api/v1/dev/session?token=badtoken")
+    assert resp.json()["authenticated"] is False
+
+
+def test_analysis_error_stored_on_exception(client):
+    """When get_riot_report raises, report.status becomes 'error'."""
+    with (
+        patch("services.riot.service.get_riot_report",
+              new=AsyncMock(side_effect=Exception("Riot API down"))),
+    ):
+        resp = client.post("/api/v1/analyze", json={"riot_id": "TestPlayer#NA1"})
+        assert resp.status_code == 200
+        report_id = resp.json()["report_id"]
+
+        import time
+        for _ in range(10):
+            r = client.get(f"/api/v1/report/{report_id}")
+            if r.json()["status"] in ("error", "done"):
+                break
+            time.sleep(0.1)
+
+        result = client.get(f"/api/v1/report/{report_id}").json()
+        assert result["status"] == "error"
+        assert "Riot API down" in (result["error"] or "")
