@@ -24,8 +24,12 @@ const config: Config = {
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
           500: '#8b9bb4',
+          600: '#64748b',
           700: '#475569',
+          800: '#1e2a3a',
           900: '#0f1923', // Dark background
         },
         accent: {
