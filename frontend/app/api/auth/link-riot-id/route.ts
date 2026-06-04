@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server'
 
-export async function POST(_request: Request) {
-  // TODO: Call backend to link Riot ID
-  // const { gameName, tagLine } = await _request.json()
-  // const response = await fetch(`${process.env.API_URL}/api/auth/link-riot-id`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({ gameName, tagLine }),
-  // })
+const API_URL   = process.env.API_URL   || 'http://localhost:8000'
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
-  // Mock response
-  await new Promise(resolve => setTimeout(resolve, 1000))
+export async function POST(request: Request) {
+  const { gameName, tagLine } = await request.json()
+  const riot_id = `${gameName}#${tagLine}`
 
-  return NextResponse.json({
-    success: true,
-    message: 'Riot ID linked successfully',
+  if (MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 500))
+    return NextResponse.json({ success: true, message: 'Riot ID linked (mock mode)' })
+  }
+
+  const res = await fetch(`${API_URL}/api/v1/auth/riot-id`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ riot_id }),
   })
+
+  const data = await res.json()
+  return NextResponse.json(data, { status: res.status })
 }

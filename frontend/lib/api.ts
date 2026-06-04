@@ -1,70 +1,101 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+/**
+ * API client for the FastAPI backend.
+ * All endpoints match services/api/main.py routes.
+ *
+ * MOCK_MODE=true  → returns fixture data, no backend needed
+ * MOCK_MODE=false → calls real FastAPI at NEXT_PUBLIC_API_URL
+ */
 
-export class ApiClient {
-  static async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${API_URL}${endpoint}`
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    })
+import { MOCK_REPORT } from './mock/analysis'
 
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`)
-    }
+const API_URL   = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:8000'
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
-    return response.json()
+// --------------------------------------------------------------------------
+// Base request
+// --------------------------------------------------------------------------
+
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${API_URL}${endpoint}`
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    ...options,
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`API ${res.status}: ${body}`)
   }
-
-  static async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET' })
-  }
-
-  static async post<T>(endpoint: string, data: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  }
-
-  static async put<T>(endpoint: string, data: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-  }
-
-  static async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' })
-  }
+  return res.json()
 }
 
-// Auth endpoints
-export const authApi = {
-  signin: (email: string) => ApiClient.post('/api/auth/signin', { email }),
-  linkRiotId: (gameName: string, tagLine: string) =>
-    ApiClient.post('/api/auth/link-riot-id', { gameName, tagLine }),
-  getSession: () => ApiClient.get('/api/auth/session'),
+// --------------------------------------------------------------------------
+// Analysis
+// --------------------------------------------------------------------------
+
+export interface AnalyzeResponse {
+  report_id: string
+  status: 'queued' | 'processing' | 'done' | 'error'
 }
 
-// Analysis endpoints
+export interface ReportResponse {
+  report_id:   string
+  status:      'queued' | 'processing' | 'done' | 'error'
+  riot_report: Record<string, unknown> | null
+  cv_report:   Record<string, unknown> | null
+  coaching:    Record<string, unknown> | null
+  error:       string | null
+}
+
 export const analysisApi = {
-  createTracker: (riotId: string) =>
-    ApiClient.post('/api/analysis/tracker', { riotId }),
-  getAnalysis: (id: string) =>
-    ApiClient.get(`/api/analysis/${id}`),
-  getHistory: () =>
-    ApiClient.get('/api/analysis/history'),
+  /** Submit a Riot ID for analysis. Returns report_id to poll. */
+  submit: async (riot_id: string): Promise<AnalyzeResponse> => {
+    if (MOCK_MODE) {
+      await new Promise(r => setTimeout(r, 800))
+      return { report_id: 'mock-001', status: 'done' }
+    }
+    return request<AnalyzeResponse>('/api/v1/analyze', {
+      method: 'POST',
+      body: JSON.stringify({ riot_id }),
+    })
+  },
+
+  /** Poll for report status + results. */
+  getReport: async (report_id: string): Promise<ReportResponse> => {
+    if (MOCK_MODE) {
+      await new Promise(r => setTimeout(r, 400))
+      return {
+        report_id,
+        status: 'done',
+        riot_report: MOCK_REPORT.riot_report as Record<string, unknown>,
+        cv_report:   null,
+        coaching:    MOCK_REPORT.coaching   as Record<string, unknown>,
+        error:       null,
+      }
+    }
+    return request<ReportResponse>(`/api/v1/report/${report_id}`)
+  },
 }
 
-// User endpoints
-export const userApi = {
-  getProfile: () => ApiClient.get('/api/user/profile'),
-  updateProfile: (data: any) =>
-    ApiClient.put('/api/user/profile', data),
+// --------------------------------------------------------------------------
+// Auth
+// --------------------------------------------------------------------------
+
+export const authApi = {
+  /** Request a magic link email. */
+  requestMagicLink: async (email: string): Promise<{ message: string }> => {
+    if (MOCK_MODE) return { message: 'Check your email (mock mode)' }
+    return request('/api/v1/auth/magic-link', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+  },
+
+  /** Link a Riot ID to the authenticated account. */
+  linkRiotId: async (riot_id: string): Promise<{ message: string }> => {
+    if (MOCK_MODE) return { message: 'Riot ID linked (mock mode)' }
+    return request('/api/v1/auth/riot-id', {
+      method: 'POST',
+      body: JSON.stringify({ riot_id }),
+    })
+  },
 }

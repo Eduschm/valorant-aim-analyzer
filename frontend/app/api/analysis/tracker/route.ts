@@ -1,23 +1,27 @@
 import { NextResponse } from 'next/server'
-import { mockAnalysis } from '@/lib/mock/analysis'
+
+const API_URL = process.env.API_URL || 'http://localhost:8000'
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
 export async function POST(request: Request) {
   const { riotId } = await request.json()
 
-  // TODO: Call backend to start tracker analysis
-  // const response = await fetch(`${process.env.API_URL}/api/analysis/tracker`, {
-  //   method: 'POST',
-  //   body: JSON.stringify({ riotId }),
-  // })
+  if (MOCK_MODE) {
+    await new Promise(r => setTimeout(r, 800))
+    return NextResponse.json({ success: true, data: { id: 'mock-001', status: 'done' } })
+  }
 
-  // Mock response
-  await new Promise(resolve => setTimeout(resolve, 1500))
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      id: mockAnalysis.id,
-      status: 'processing',
-    },
+  const res = await fetch(`${API_URL}/api/v1/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ riot_id: riotId }),
   })
+
+  if (!res.ok) {
+    const err = await res.text()
+    return NextResponse.json({ success: false, error: err }, { status: res.status })
+  }
+
+  const data = await res.json()
+  return NextResponse.json({ success: true, data: { id: data.report_id, status: data.status } })
 }
