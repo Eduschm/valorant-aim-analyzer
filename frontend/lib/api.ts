@@ -7,6 +7,7 @@
  */
 
 import { MOCK_REPORT } from './mock/analysis'
+import { logger } from './logger'
 
 const API_URL   = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:8000'
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
@@ -17,15 +18,19 @@ const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_URL}${endpoint}`
+  logger.debug('API request', options.method || 'GET', url)
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   })
   if (!res.ok) {
     const body = await res.text()
+    logger.error('API error', res.status, url, body)
     throw new Error(`API ${res.status}: ${body}`)
   }
-  return res.json()
+  const json = await res.json()
+  logger.debug('API response', url, json)
+  return json
 }
 
 // --------------------------------------------------------------------------

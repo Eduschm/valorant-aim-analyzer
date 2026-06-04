@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, Target, Swords, Trophy, AlertCircle } from 'lucide-react'
 import { saveAnalysis } from '@/lib/storage'
+import { logger } from '@/lib/logger'
 
 interface Report {
   report_id: string
@@ -49,9 +50,14 @@ export default function AnalysisReportPage() {
 
     const poll = async () => {
       try {
+        logger.debug('Polling report', id)
         const res = await fetch(`/api/analysis/${id}`)
         if (!res.ok) throw new Error(`${res.status}`)
         const json = await res.json()
+        if (typeof json === 'object' && json !== null && 'success' in json && json.success === false) {
+          throw new Error(json.error || 'Failed to load report')
+        }
+
         const data: Report = json.data || json
 
         if (!cancelled) {
@@ -64,7 +70,8 @@ export default function AnalysisReportPage() {
           }
         }
       } catch (e: any) {
-        if (!cancelled) setError('Could not load report — is the API running?')
+        logger.error('Polling report failed', id, e)
+        if (!cancelled) setError(e.message || 'Could not load report — is the API running?')
       }
     }
 
@@ -72,13 +79,27 @@ export default function AnalysisReportPage() {
     return () => { cancelled = true }
   }, [id])
 
-  // --- Loading ---
-  if (!report || (report.status !== 'done' && report.status !== 'error')) {
+  if (error || report?.status === 'error') {
+    const errorMessage = report?.status === 'error' ? report.error || 'Unknown error' : error
+    return (
+      <div className="min-h-screen bg-[#0A0B0F] flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <AlertCircle className="w-10 h-10 text-[#FF4655] mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Analysis failed</h2>
+          <p className="text-[#7A8496] text-sm">{errorMessage}</p>
+          <Link href="/analysis/new" className="inline-block mt-6 text-[#FF4655] text-sm hover:underline">
+            Try again
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (!report || report.status !== 'done') {
     return (
       <div className="min-h-screen bg-[#0A0B0F] flex flex-col items-center justify-center gap-6">
         <div className="w-10 h-10 border-2 border-[#1F2130] border-t-[#FF4655] rounded-full animate-spin" />
         <p className="text-[#7A8496] text-sm">{loadingMsg}</p>
-        {error && <p className="text-[#FF4655] text-xs">{error}</p>}
       </div>
     )
   }
