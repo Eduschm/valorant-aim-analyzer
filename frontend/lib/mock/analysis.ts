@@ -40,6 +40,13 @@ export const MOCK_REPORT = {
   error: null,
 }
 
+export const mockAnalysisHistory = [
+  { id: 'mock-001', riotId: 'DemoPlayer#NA1', createdAt: new Date(Date.now() - 5 * 60000).toISOString(),           status: 'completed', stats: { headshotPercent: 21.5, adr: 142.3 } },
+  { id: 'mock-002', riotId: 'DemoPlayer#NA1', createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),         status: 'completed', stats: { headshotPercent: 19.8, adr: 138.1 } },
+  { id: 'mock-003', riotId: 'DemoPlayer#NA1', createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),        status: 'completed', stats: { headshotPercent: 23.1, adr: 151.4 } },
+  { id: 'mock-004', riotId: 'DemoPlayer#NA1', createdAt: new Date(Date.now() - 2 * 24 * 3600000).toISOString(),    status: 'completed', stats: { headshotPercent: 18.7, adr: 129.8 } },
+]
+
 // Legacy shape kept for any components still using the old format
 export const mockAnalysis = {
   id:        'mock-001',

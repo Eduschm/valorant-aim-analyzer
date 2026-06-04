@@ -1,63 +1,85 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { mockAnalysisHistory } from '@/lib/mock/analysis'
 import { ArrowRight } from 'lucide-react'
+import { getAllAnalyses, StoredAnalysis } from '@/lib/storage'
+import { mockAnalysisHistory } from '@/lib/mock/analysis'
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-  
-  if (diffMins < 60) return `${diffMins}m ago`
-  if (diffHours < 24) return `${diffHours}h ago`
-  if (diffDays < 7) return `${diffDays}d ago`
-  return date.toLocaleDateString()
+function timeAgo(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime()
+  const m  = Math.floor(ms / 60000)
+  const h  = Math.floor(ms / 3600000)
+  const d  = Math.floor(ms / 86400000)
+  if (m < 60)  return `${m}m ago`
+  if (h < 24)  return `${h}h ago`
+  if (d < 7)   return `${d}d ago`
+  return new Date(iso).toLocaleDateString()
 }
 
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+
 export function AnalysisHistory() {
-  return (
-    <div className="bg-surface-500 border border-secondary-700 rounded-lg overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-secondary-700 bg-secondary-600/50">
-              <th className="px-6 py-4 text-left text-secondary-300 font-semibold">Date</th>
-              <th className="px-6 py-4 text-left text-secondary-300 font-semibold">Riot ID</th>
-              <th className="px-6 py-4 text-left text-secondary-300 font-semibold">HS%</th>
-              <th className="px-6 py-4 text-left text-secondary-300 font-semibold">ADR</th>
-              <th className="px-6 py-4 text-left text-secondary-300 font-semibold">Status</th>
-              <th className="px-6 py-4 text-right text-secondary-300 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {mockAnalysisHistory.map((analysis, idx) => (
-              <tr key={idx} className="border-b border-secondary-700 hover:bg-secondary-600/30 transition">
-                <td className="px-6 py-4 text-secondary-100">
-                  {formatDate(analysis.createdAt)}
-                </td>
-                <td className="px-6 py-4 text-secondary-100">{analysis.riotId}</td>
-                <td className="px-6 py-4 text-accent-400 font-semibold">{analysis.stats.headshotPercent}%</td>
-                <td className="px-6 py-4 text-accent-400 font-semibold">{analysis.stats.adr.toFixed(1)}</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-semibold">
-                    ● Completed
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <Link href={`/analysis/${analysis.id}`} className="inline-flex items-center gap-1 text-primary-400 hover:text-primary-300 transition">
-                    View
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+  const [rows, setRows] = useState<any[]>([])
+
+  useEffect(() => {
+    if (MOCK_MODE) {
+      setRows(mockAnalysisHistory)
+      return
+    }
+    const stored = getAllAnalyses().map(a => ({
+      id:        a.id,
+      riotId:    a.riot_id,
+      createdAt: a.saved_at,
+      status:    'completed',
+      stats: {
+        headshotPercent: a.riot_report?.avg_headshot_pct ?? 0,
+        adr:             a.riot_report?.avg_adr ?? 0,
+      },
+    }))
+    setRows(stored.length > 0 ? stored : mockAnalysisHistory)
+  }, [])
+
+  if (rows.length === 0) {
+    return (
+      <div className="border border-val-border bg-val-surface p-10 text-center text-val-muted text-sm">
+        No analyses yet.{' '}
+        <Link href="/analysis/new" className="text-val-red hover:underline">Run your first one →</Link>
       </div>
+    )
+  }
+
+  return (
+    <div className="border border-val-border bg-val-surface overflow-hidden">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-val-border">
+            {['Date', 'Riot ID', 'HS%', 'ADR', 'Status', ''].map(h => (
+              <th key={h} className="px-5 py-3 text-left text-val-muted text-xs uppercase tracking-widest font-medium">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className="border-b border-val-border last:border-0 hover:bg-val-surface-2 transition">
+              <td className="px-5 py-3 text-val-subtle">{timeAgo(row.createdAt)}</td>
+              <td className="px-5 py-3 text-val-text font-mono">{row.riotId}</td>
+              <td className="px-5 py-3 text-val-text">{row.stats.headshotPercent.toFixed(1)}%</td>
+              <td className="px-5 py-3 text-val-text">{row.stats.adr.toFixed(0)}</td>
+              <td className="px-5 py-3">
+                <span className="text-xs text-val-green bg-val-green-dim px-2 py-0.5">Done</span>
+              </td>
+              <td className="px-5 py-3 text-right">
+                <Link href={`/analysis/${row.id}`} className="inline-flex items-center gap-1 text-val-red text-xs hover:underline">
+                  View <ArrowRight className="w-3 h-3" />
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

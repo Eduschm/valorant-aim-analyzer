@@ -8,21 +8,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Valorant palette
         val: {
-          red:    '#FF4655',
-          'red-dark': '#CC3542',
-          'red-glow': 'rgba(255,70,85,0.15)',
-          blue:   '#00D4FF',
-          'blue-dark': '#0099BB',
-          bg:     '#0D0E14',
-          surface:'#13141C',
-          'surface-2': '#1A1B26',
-          border: '#1E2030',
-          'border-2': '#2A2D40',
-          text:   '#E8EAF0',
-          muted:  '#5A6070',
-          subtle: '#8892A4',
+          bg:           '#0A0B0F',
+          surface:      '#111318',
+          'surface-2':  '#181A22',
+          border:       '#1F2130',
+          'border-2':   '#2A2D40',
+          red:          '#FF4655',
+          'red-dark':   '#CC3542',
+          'red-glow':   'rgba(255,70,85,0.12)',
+          text:         '#F0F1F5',
+          subtle:       '#7A8496',
+          muted:        '#42495A',
+          green:        '#22C55E',
+          'green-dim':  'rgba(34,197,94,0.12)',
+          orange:       '#F97316',
+          'orange-dim': 'rgba(249,115,22,0.12)',
         },
       },
       fontFamily: {
@@ -30,15 +31,11 @@ const config: Config = {
         display: ['Rajdhani', 'sans-serif'],
       },
       boxShadow: {
-        'red-glow':  '0 0 24px rgba(255, 70, 85, 0.3)',
-        'red-glow-sm': '0 0 12px rgba(255, 70, 85, 0.2)',
-        'blue-glow': '0 0 24px rgba(0, 212, 255, 0.2)',
+        'red-glow':    '0 0 24px rgba(255, 70, 85, 0.25)',
+        'red-glow-sm': '0 0 12px rgba(255, 70, 85, 0.15)',
       },
-      backgroundImage: {
-        'grid-pattern': 'linear-gradient(rgba(30,32,48,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(30,32,48,0.5) 1px, transparent 1px)',
-      },
-      backgroundSize: {
-        'grid': '32px 32px',
+      animation: {
+        'spin-slow': 'spin 2s linear infinite',
       },
     },
   },
