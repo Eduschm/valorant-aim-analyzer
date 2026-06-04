@@ -1,0 +1,12 @@
+train: C:\Users\Edu\Desktop\T\valorant-aim-analyzer\data\train\images
+val: C:\Users\Edu\Desktop\T\valorant-aim-analyzer\data\valid\images
+
+nc: 6
+names: ['enemy', 'enemy_death', 'enemy_head', 'friend', 'friend_head', 'friend_death']
+
+roboflow:
+  workspace: valo-qs4up
+  project: valorant-0h6ni
+  version: 1
+  license: Public Domain
+  url: https://universe.roboflow.com/valo-qs4up/valorant-0h6ni/dataset/1

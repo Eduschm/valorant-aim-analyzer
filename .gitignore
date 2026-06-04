@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Model weights — use cloud storage, not git
+services/cv/models/*.pt
+*.pt
+
+# Training data — too large for git
+data/train/
+data/valid/
+data/test/
+
+# Training runs output
+runs/
+services/cv/output/
+
+# Clips
+*.mp4
+*.mov
+*.avi
+
+# Secrets
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
