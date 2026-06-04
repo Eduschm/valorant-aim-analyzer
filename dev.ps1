@@ -6,5 +6,3 @@ Set-Location "$(Split-Path -Parent $MyInvocation.MyCommand.Path)\services\api"
 
 Write-Host "Starting API server on port 8000..." -ForegroundColor Green
 python -m uvicorn main:app --reload --port 8000
-
-#  
