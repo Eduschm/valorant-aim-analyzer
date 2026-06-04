@@ -117,7 +117,7 @@ def main():
 
             # Annotate
             if annotator:
-                annotator.annotate_frame(frame, frame_idx, crosshair, frame_mistakes)
+                annotator.annotate_frame(frame, frame_idx, crosshair, frame_mistakes, tracks)
 
             frame_idx += 1
             pbar.update(1)

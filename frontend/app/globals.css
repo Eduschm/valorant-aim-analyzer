@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@700&display=swap');
+
+* {
+  @apply border-secondary-200 dark:border-secondary-700;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-secondary-900 text-secondary-100;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-heading font-bold;
+}
+
+code, pre {
+  @apply font-mono;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-secondary-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary-400 rounded hover:bg-primary-500;
+}
+
+/* Valorant-inspired glow effect */
+.glow {
+  @apply shadow-glow;
+}
+
+.glow-accent {
+  @apply shadow-glow-accent;
+}

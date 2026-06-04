@@ -54,26 +54,51 @@ class VideoAnnotator:
         for e in events:
             self._frame_events[e.frame_idx].append(e)
 
+    # Colour per label
+    _BOX_COLORS = {
+        "enemy":        (0,   60,  255),   # red
+        "enemy_head":   (0,   0,   255),   # bright red
+        "enemy_death":  (80,  80,  160),   # muted purple
+        "friend":       (0,   200, 60),    # green
+        "friend_head":  (0,   255, 80),    # bright green
+        "friend_death": (60,  120, 60),    # muted green
+    }
+
     def annotate_frame(
         self,
         frame: np.ndarray,
         frame_idx: int,
         crosshair: tuple[float, float] | None,
         real_time_mistakes: list[MistakeEvent],
+        tracks: list | None = None,
     ) -> np.ndarray:
         out = frame.copy()
 
-        # Activate new events
+        # --- Draw bounding boxes for all tracked objects ---
+        if tracks:
+            for t in tracks:
+                x1, y1, x2, y2 = [int(v) for v in t.bbox]
+                color = self._BOX_COLORS.get(t.label, (200, 200, 200))
+                cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
+
+                # Label chip above the box
+                chip = f"{t.label} #{t.id} {t.conf:.2f}"
+                (tw, th), _ = cv2.getTextSize(chip, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
+                chip_y = max(y1 - 4, th + 4)
+                cv2.rectangle(out, (x1, chip_y - th - 4), (x1 + tw + 4, chip_y + 2), color, -1)
+                cv2.putText(out, chip, (x1 + 2, chip_y - 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+        # --- Draw screen-centre crosshair ---
+        h, w = out.shape[:2]
+        cx, cy = w // 2, h // 2
+        cv2.drawMarker(out, (cx, cy), (0, 255, 0), cv2.MARKER_CROSS, 24, 2)
+
+        # --- Activate new mistake events ---
         for e in real_time_mistakes:
             self._active_mistakes.append((frame_idx + 45, e))
 
-        # Draw crosshair marker
-        if crosshair:
-            cx, cy = int(crosshair[0]), int(crosshair[1])
-            cv2.drawMarker(out, (cx, cy), (0, 255, 0),
-                           cv2.MARKER_CROSS, 20, 2)
-
-        # Draw active mistake overlays
+        # --- Draw active mistake overlays ---
         self._active_mistakes = [(exp, e) for exp, e in self._active_mistakes if exp > frame_idx]
 
         y_offset = 40
@@ -81,11 +106,17 @@ class VideoAnnotator:
             color = config.MISTAKE_COLORS.get(event.mistake_type, (255, 255, 255))
             label = MISTAKE_LABELS.get(event.mistake_type, event.mistake_type)
             text  = f"[{label}] {event.description}"
-            cv2.rectangle(out, (10, y_offset - 18), (10 + len(text) * 9, y_offset + 6),
-                          (0, 0, 0), -1)
+            (tw, _), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.52, 1)
+            cv2.rectangle(out, (10, y_offset - 18), (14 + tw, y_offset + 6), (0, 0, 0), -1)
             cv2.putText(out, text, (12, y_offset),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 1, cv2.LINE_AA)
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.52, color, 1, cv2.LINE_AA)
             y_offset += 28
+
+        # --- Frame counter (top-right) ---
+        fc = f"frame {frame_idx}"
+        (fw, _), _ = cv2.getTextSize(fc, cv2.FONT_HERSHEY_SIMPLEX, 0.4, 1)
+        cv2.putText(out, fc, (w - fw - 8, 18),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (180, 180, 180), 1, cv2.LINE_AA)
 
         self.writer.write(out)
         return out
@@ -172,7 +203,7 @@ class Reporter:
 
         if fmt in ("json", "both"):
             json_path = base + "_report.json"
-            with open(json_path, "w") as f:
+            with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(summary, f, indent=2)
             print(f"[Reporter] JSON report → {json_path}")
 
@@ -180,7 +211,7 @@ class Reporter:
             csv_path = base + "_events.csv"
             if summary["all_events"]:
                 keys = summary["all_events"][0].keys()
-                with open(csv_path, "w", newline="") as f:
+                with open(csv_path, "w", newline="", encoding="utf-8") as f:
                     w = csv.DictWriter(f, fieldnames=keys)
                     w.writeheader()
                     w.writerows(summary["all_events"])
