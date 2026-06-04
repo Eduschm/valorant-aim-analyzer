@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, TrendingUp, Target, Swords, Trophy, AlertCircle } from 'lucide-react'
+import { saveAnalysis } from '@/lib/storage'
 
 interface Report {
   report_id: string
@@ -55,6 +56,9 @@ export default function AnalysisReportPage() {
 
         if (!cancelled) {
           setReport(data)
+          if (data.status === 'done' && data.riot_report) {
+            saveAnalysis(data)
+          }
           if (data.status !== 'done' && data.status !== 'error') {
             setTimeout(poll, POLL_MS)
           }
