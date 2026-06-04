@@ -14,13 +14,26 @@ export async function GET(
     return NextResponse.json({ success: true, data: { ...MOCK_REPORT, report_id: id } })
   }
 
-  const res = await fetch(`${API_URL}/api/v1/report/${id}`)
+  try {
+    const res = await fetch(`${API_URL}/api/v1/report/${id}`)
 
-  if (!res.ok) {
-    const err = await res.text()
-    return NextResponse.json({ success: false, error: err }, { status: res.status })
+    if (!res.ok) {
+      const err = await res.text()
+      return NextResponse.json(
+        { success: false, error: `API error ${res.status}: ${err}` },
+        { status: res.status }
+      )
+    }
+
+    const data = await res.json()
+    return NextResponse.json({ success: true, data })
+
+  } catch (e: any) {
+    const isConnRefused = e.message?.includes('ECONNREFUSED') || e.cause?.code === 'ECONNREFUSED'
+    const msg = isConnRefused
+      ? 'Backend not running — start it with: cd services/api && uvicorn main:app --reload --port 8000'
+      : e.message || 'Unexpected error'
+
+    return NextResponse.json({ success: false, error: msg }, { status: 502 })
   }
-
-  const data = await res.json()
-  return NextResponse.json({ success: true, data })
 }

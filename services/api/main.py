@@ -29,8 +29,13 @@ load_dotenv()
 
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
-from .schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest
-from .store   import store
+try:
+    from .schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest
+    from .store   import store
+except ImportError:
+    # Fallback for running with: uvicorn main:app (not as package)
+    from schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest  # type: ignore
+    from store   import store  # type: ignore
 
 # Simple in-memory session store (replaced by DB+JWT in auth implementation)
 # token → user dict
@@ -84,8 +89,14 @@ async def _run_analysis(report_id: str, riot_id: str):
     """Background task: fetch Riot data → generate coaching → store result."""
     store.update(report_id, status="processing")
     try:
-        from services.riot.service import get_riot_report
-        from services.llm.coach    import generate_coaching_report
+        # Works whether run from repo root (services.riot) or services/api (sys.path set above)
+        try:
+            from services.riot.service import get_riot_report
+            from services.llm.coach    import generate_coaching_report
+        except ImportError:
+            sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+            from riot.service import get_riot_report   # type: ignore
+            from llm.coach    import generate_coaching_report  # type: ignore
 
         riot = await get_riot_report(riot_id)
         coaching = await generate_coaching_report(riot)
