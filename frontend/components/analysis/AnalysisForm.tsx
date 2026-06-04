@@ -2,84 +2,104 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, ArrowRight, Target } from 'lucide-react'
 
 export function AnalysisForm() {
   const router = useRouter()
-  const [riotId, setRiotId] = useState('Edu#1234')
-  const [isLoading, setIsLoading] = useState(false)
+  const [riotId, setRiotId] = useState('')
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setIsLoading(true)
 
+    if (!riotId.includes('#')) {
+      setError('Enter a valid Riot ID — format: Name#TAG')
+      return
+    }
+
+    setLoading(true)
     try {
-      if (!riotId.includes('#')) {
-        setError('Please enter a valid Riot ID (e.g. PlayerName#1234)')
-        return
+      const res = await fetch('/api/analysis/tracker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ riotId }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Server error ${res.status}`)
       }
 
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // In a real app:
-      // const response = await fetch('/api/analysis/tracker', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ riotId })
-      // })
-      // const data = await response.json()
-
-      router.push('/analysis/analysis_123')
-    } catch (err) {
-      setError('Failed to start analysis. Please try again.')
+      const { data } = await res.json()
+      router.push(`/analysis/${data.id}`)
+    } catch (e: any) {
+      setError(e.message || 'Analysis failed. Check the API is running.')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 bg-surface-500 border border-secondary-700 p-8 rounded-lg">
+    <form onSubmit={handleSubmit} className="space-y-6">
+
       {error && (
-        <div className="bg-primary-400/10 border border-primary-400/30 rounded-lg p-4 flex gap-3 text-primary-400">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-          <p className="text-sm">{error}</p>
+        <div className="flex items-start gap-3 border border-val-red/30 bg-val-red/5 px-4 py-3 text-val-red text-sm">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          {error}
         </div>
       )}
 
       <div>
-        <label className="block text-secondary-300 text-sm font-medium mb-2">Riot ID</label>
+        <label className="block text-val-subtle text-xs uppercase tracking-widest mb-3">
+          Riot ID
+        </label>
         <input
           type="text"
           value={riotId}
-          onChange={(e) => setRiotId(e.target.value)}
-          placeholder="PlayerName#1234"
-          className="w-full bg-secondary-700 border border-secondary-600 rounded-lg px-4 py-3 text-secondary-100 placeholder-secondary-400 focus:outline-none focus:border-primary-400 text-lg"
+          onChange={e => setRiotId(e.target.value)}
+          placeholder="PlayerName#NA1"
+          autoFocus
+          className="w-full bg-val-surface border border-val-border text-val-text text-lg px-4 py-4 focus:outline-none focus:border-val-red transition placeholder-val-muted font-mono"
         />
-        <p className="text-secondary-400 text-sm mt-2">
-          Enter the Valorant player ID to analyze their last 20 matches
+        <p className="text-val-muted text-xs mt-2">
+          We'll pull your last 20 ranked matches via the Riot API.
         </p>
       </div>
 
-      <div className="bg-secondary-600/50 border border-secondary-600 rounded-lg p-4">
-        <h3 className="font-semibold mb-2 text-secondary-100">What we analyze:</h3>
-        <ul className="space-y-1 text-sm text-secondary-300">
-          <li>✓ Headshot percentage</li>
-          <li>✓ Average damage per round (ADR)</li>
-          <li>✓ Weapon efficiency</li>
-          <li>✓ Agent performance</li>
-          <li>✓ Rank progression</li>
-        </ul>
+      {/* What we check */}
+      <div className="border border-val-border bg-val-surface p-4">
+        <p className="text-val-subtle text-xs uppercase tracking-widest mb-3">Analyzed</p>
+        <div className="grid grid-cols-2 gap-2 text-val-subtle text-sm">
+          {['Headshot %', 'ADR', 'Win rate', 'Top agent', 'Top weapon', 'Rank delta'].map(item => (
+            <div key={item} className="flex items-center gap-2">
+              <div className="w-1 h-1 bg-val-red rounded-full flex-shrink-0" />
+              {item}
+            </div>
+          ))}
+        </div>
       </div>
 
       <button
         type="submit"
-        disabled={isLoading}
-        className="w-full bg-primary-400 text-secondary-900 py-3 rounded-lg font-semibold hover:bg-primary-500 transition disabled:opacity-50 text-lg"
+        disabled={loading || !riotId}
+        className="clip-corner w-full flex items-center justify-center gap-2 bg-val-red text-white font-semibold py-4 text-sm hover:bg-val-red-dark transition disabled:opacity-40 shadow-red-glow-sm"
       >
-        {isLoading ? 'Analyzing...' : 'Start Analysis'}
+        {loading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Analyzing...
+          </>
+        ) : (
+          <>
+            <Target className="w-4 h-4" />
+            Analyze aim
+            <ArrowRight className="w-4 h-4" />
+          </>
+        )}
       </button>
+
     </form>
   )
 }

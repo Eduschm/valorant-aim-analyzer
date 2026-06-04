@@ -8,53 +8,37 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#fff5f5',
-          100: '#fed7d7',
-          200: '#fc8c8c',
-          300: '#f6747d',
-          400: '#ff4655', // Valorant red
-          500: '#ff4655',
-          600: '#e64149',
-          700: '#c4323e',
-          800: '#a22c35',
-          900: '#7a1f26',
-        },
-        secondary: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#8b9bb4',
-          600: '#64748b',
-          700: '#475569',
-          800: '#1e2a3a',
-          900: '#0f1923', // Dark background
-        },
-        accent: {
-          50: '#f0fdfd',
-          100: '#d4faf8',
-          400: '#69c9d0', // Cyan
-          500: '#00b8c4',
-          600: '#00a0ad',
-        },
-        surface: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          500: '#1f2731',
-          600: '#1a1f27',
-          700: '#0f1923',
+        // Valorant palette
+        val: {
+          red:    '#FF4655',
+          'red-dark': '#CC3542',
+          'red-glow': 'rgba(255,70,85,0.15)',
+          blue:   '#00D4FF',
+          'blue-dark': '#0099BB',
+          bg:     '#0D0E14',
+          surface:'#13141C',
+          'surface-2': '#1A1B26',
+          border: '#1E2030',
+          'border-2': '#2A2D40',
+          text:   '#E8EAF0',
+          muted:  '#5A6070',
+          subtle: '#8892A4',
         },
       },
       fontFamily: {
-        heading: ['Inter', 'sans-serif'],
-        body: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        sans:    ['Inter', 'sans-serif'],
+        display: ['Rajdhani', 'sans-serif'],
       },
       boxShadow: {
-        glow: '0 0 20px rgba(255, 70, 85, 0.1)',
-        'glow-accent': '0 0 20px rgba(105, 201, 208, 0.1)',
+        'red-glow':  '0 0 24px rgba(255, 70, 85, 0.3)',
+        'red-glow-sm': '0 0 12px rgba(255, 70, 85, 0.2)',
+        'blue-glow': '0 0 24px rgba(0, 212, 255, 0.2)',
+      },
+      backgroundImage: {
+        'grid-pattern': 'linear-gradient(rgba(30,32,48,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(30,32,48,0.5) 1px, transparent 1px)',
+      },
+      backgroundSize: {
+        'grid': '32px 32px',
       },
     },
   },
