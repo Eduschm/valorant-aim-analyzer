@@ -91,6 +91,33 @@ Two terminals:
 
 Set `NEXT_PUBLIC_MOCK_MODE=false` in `frontend/.env.local` to use the real API.
 
+## Frontend QA (visual)
+
+For visually verifying frontend changes (labels, layout, rendering) without a backend or API keys:
+
+```bash
+printf 'NEXT_PUBLIC_MOCK_MODE=true\n' > frontend/.env.local
+rm -rf frontend/.next
+cd frontend && npm run dev   # http://localhost:3000
+```
+
+There are **8** pages to QA (the smoke script probes 7 and omits the report page):
+
+| Page | Route to load in mock mode |
+| --- | --- |
+| Landing | `/` |
+| New analysis | `/analysis/new` |
+| Report | `/analysis/mock-001` (any id works; `mock-001` is wired in mock data) |
+| Tracker | `/tracker` |
+| Dashboard | `/dashboard` |
+| Profile | `/profile` |
+| Settings | `/settings` |
+| Sign in | `/auth/signin` |
+
+- Mock data lives in `frontend/lib/mock/analysis.ts` (`MOCK_REPORT`). In mock mode the **report** (`/analysis/mock-001`) and **tracker** (`/tracker`) pages render from it: `current_rank="Gold 2"`, `rank_delta=15`. Good fixtures for verifying rank/label changes — e.g. the rank-delta label renders as `+15 tiers` (the label text is set in `frontend/app/analysis/[id]/page.tsx` and `frontend/app/tracker/page.tsx`).
+- `components/auth/AuthGuard.tsx` is **defined but not imported anywhere**, so no page is auth-gated — every route loads directly in the browser without signing in. (May change if auth gets wired up later.)
+- To confirm routes respond before opening a browser: `for p in / /analysis/new /analysis/mock-001 /tracker /profile /dashboard /settings /auth/signin; do curl -s -o /dev/null -w "%{http_code}  $p\n" "http://localhost:3000$p"; done`
+
 ## Testing
 
 ```bash
@@ -101,12 +128,14 @@ python -m pytest services/ -v --ignore=services/cv/tests/test_detector.py
 cd frontend && npm test
 ```
 
+- **Known/possibly-preexisting frontend test failure:** `frontend/app/analysis/[id]/__tests__/page.test.tsx` may fail to parse with a RolldownError (`Parse failed`) — the other suites pass (e.g. 22/22). This has reproduced on `main`, so if you see it, check the base branch before assuming your change caused it.
+
 ## Gotchas
 
 - **`smoke.sh` exits on subshell syntax error on bash 3.x.** The `( cmd ) &` pattern fails. Use `cmd & PID=$!` instead — that's what `smoke.sh` does.
-- **`analysis` endpoint always errors without a real `RIOT_API_KEY`.** `status=error` from `/api/v1/report/{id}` is the correct response when the key is `dummy`. Smoke treats this as a PASS.
+- **`analysis` endpoint always errors without a real `RIOT_API_KEY`.** `status=error` from `/api/v1/report/{id}` is the correct response when the key is `dummy`. Smoke treats this as a PASS. Rank is derived from the Riot `competitiveTier` field on matches (no Henrik API), so live rank verification needs a real key tied to a Riot account.
 - **`/api/v1/auth/magic-link` returns 501** — auth is not implemented yet. Smoke asserts 501 as the expected code.
-- **Frontend in mock mode** (`NEXT_PUBLIC_MOCK_MODE=true`) serves all pages with fake data regardless of whether the backend is up. All 7 routes return 200 in mock mode.
+- **Frontend in mock mode** (`NEXT_PUBLIC_MOCK_MODE=true`) serves all pages with fake data regardless of whether the backend is up. All 8 routes return 200 in mock mode.
 - **Python venv path is OS-dependent.** `smoke.sh` tries `.venv/Scripts/python.exe` (Windows) then falls back to `python3` (Linux/Mac).
 - **`DEV_MODE=true` required** for `POST /api/v1/dev/create-account`. Without it the endpoint returns 404.
 - **Frontend takes ~5s to compile on first request.** The wait loop in `smoke.sh` retries up to 30s.
