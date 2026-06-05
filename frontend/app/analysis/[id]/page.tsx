@@ -9,6 +9,9 @@ import { saveAnalysis } from '@/lib/storage'
 import { logger } from '@/lib/logger'
 import { Stagger, Item, Reveal } from '@/components/ui/motion'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
+import { AgentIcon } from '@/components/ui/AgentIcon'
+import { RankBadge } from '@/components/ui/RankBadge'
+import { Celebrate } from '@/components/ui/Celebrate'
 
 interface Report {
   report_id: string
@@ -145,9 +148,12 @@ export default function AnalysisReportPage() {
     { label: 'Win rate',   value: (riot?.win_rate ?? 0) * 100, decimals: 0, suffix: '%', icon: Trophy },
   ]
 
+  const promoted = (riot?.rank_delta ?? 0) > 0
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
+      <Celebrate trigger={report.status === 'done' && !!riot} intense={promoted} />
 
       {/* Nav */}
       <nav className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#1F2130] bg-[#07080C]/85 px-6 backdrop-blur">
@@ -183,19 +189,24 @@ export default function AnalysisReportPage() {
           >
             <ArrowLeft className="h-3 w-3" /> New analysis
           </Link>
-          <h1 className="font-display text-4xl font-bold tracking-tight">
-            {riot?.game_name}
-            <span className="text-[#42495A]">#{riot?.tag_line}</span>
-          </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#7A8496]">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-3 py-1 font-semibold text-[#FF4655]">
-              {riot?.current_rank || 'Unranked'}
-            </span>
-            <span>{riot?.matches?.length || 0} matches</span>
-            <span className="text-[#42495A]">·</span>
-            <span className={riot?.rank_delta >= 0 ? 'text-emerald-400' : 'text-[#FF4655]'}>
-              {riot?.rank_delta >= 0 ? '+' : ''}{riot?.rank_delta} tiers
-            </span>
+          <div className="flex items-center gap-5">
+            <RankBadge rank={riot?.current_rank || 'Unranked'} size={72} promoted={promoted} />
+            <div>
+              <h1 className="font-display text-4xl font-bold tracking-tight">
+                {riot?.game_name}
+                <span className="text-[#42495A]">#{riot?.tag_line}</span>
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#7A8496]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-3 py-1 font-semibold text-[#FF4655]">
+                  {riot?.current_rank || 'Unranked'}
+                </span>
+                <span>{riot?.matches?.length || 0} matches</span>
+                <span className="text-[#42495A]">·</span>
+                <span className={riot?.rank_delta >= 0 ? 'text-emerald-400' : 'text-[#FF4655]'}>
+                  {riot?.rank_delta >= 0 ? '+' : ''}{riot?.rank_delta} tiers
+                </span>
+              </div>
+            </div>
           </div>
         </Reveal>
 
@@ -218,7 +229,10 @@ export default function AnalysisReportPage() {
               <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
                 <TrendingUp className="h-3.5 w-3.5 text-[#FF4655]" /> Top agent
               </div>
-              <div className="font-display text-3xl font-bold text-[#F0F1F5]">{riot?.top_agent ?? '-'}</div>
+              <div className="flex items-center gap-2.5">
+                <AgentIcon name={riot?.top_agent} size={36} />
+                <span className="font-display text-2xl font-bold text-[#F0F1F5]">{riot?.top_agent ?? '-'}</span>
+              </div>
             </div>
           </Item>
         </Stagger>
@@ -335,7 +349,10 @@ export default function AnalysisReportPage() {
                     <span className={`w-4 text-xs font-bold ${m.won ? 'text-emerald-400' : 'text-[#FF4655]'}`}>
                       {m.won ? 'W' : 'L'}
                     </span>
-                    <span className="w-24 truncate text-[#7A8496]">{m.agent}</span>
+                    <span className="flex w-28 items-center gap-2 truncate text-[#7A8496]">
+                      <AgentIcon name={m.agent} size={24} />
+                      {m.agent}
+                    </span>
                     <span className="font-mono text-[#F0F1F5]">{m.kills}/{m.deaths}/{m.assists}</span>
                     <span className="ml-auto text-[#42495A]">{m.headshot_pct?.toFixed(0)}% HS</span>
                     <span className="w-16 text-right text-[#42495A]">{m.adr?.toFixed(0)} ADR</span>
