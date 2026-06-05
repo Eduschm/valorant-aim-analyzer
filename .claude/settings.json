@@ -6,7 +6,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "& .claude\\hooks\\auto_commit.ps1",
+            "command": "$status = git status --porcelain 2>&1; if ($status) { $null = & .venv\\Scripts\\python.exe -m pytest services/ -x -q --ignore=services/cv/tests/test_detector.py 2>&1; if ($LASTEXITCODE -eq 0) { git add -A; git commit -m 'auto: commit session changes'; git push origin main 2>&1 | Out-Null; Write-Output '{\"systemMessage\":\"Auto-committed and pushed.\"}' } else { Write-Output '{\"systemMessage\":\"Auto-commit skipped: tests failed.\"}' } }",
             "timeout": 120,
             "statusMessage": "Running tests and committing..."
           }
@@ -20,7 +20,7 @@
           {
             "type": "command",
             "shell": "powershell",
-            "command": "& .claude\\hooks\\check_tests.ps1",
+            "command": "try { $raw = [Console]::In.ReadToEnd(); $json = $raw | ConvertFrom-Json; $file = $json.tool_input.file_path; if ($file -and ($file -match '\\.py$') -and ($file -notmatch 'test_')) { $dir = Split-Path $file -Parent; $base = [IO.Path]::GetFileNameWithoutExtension($file); $testPath = \"$dir\\tests\\test_$base.py\"; if (-not (Test-Path $testPath)) { $ctx = \"No test file found for $file. Create tests at $testPath before finishing.\"; Write-Output \"{`\"hookSpecificOutput`\":{`\"hookEventName`\":`\"PostToolUse`\",`\"additionalContext`\":`\"$ctx`\"}}\" } } } catch {}",
             "timeout": 10,
             "statusMessage": "Checking for test file..."
           }
