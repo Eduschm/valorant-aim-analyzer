@@ -27,7 +27,8 @@ describe('AnalysisReportPage', () => {
     render(<AnalysisReportPage />)
 
     await waitFor(() => expect(screen.getByText('Analysis failed')).toBeInTheDocument())
-    expect(screen.getByText(/Backend offline|Could not load report/)).toBeInTheDocument()
+    // The page surfaces the HTTP status code as the error message.
+    expect(screen.getByText('502')).toBeInTheDocument()
   })
 
   it('renders the report after a successful poll', async () => {
@@ -66,7 +67,8 @@ describe('AnalysisReportPage', () => {
     const { default: AnalysisReportPage } = await import('@/app/analysis/[id]/page')
     render(<AnalysisReportPage />)
 
-    await waitFor(() => expect(screen.getByText('TestPlayer#NA1')).toBeInTheDocument())
+    // game_name and #tag_line render in separate elements, so match the heading's accessible name.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'TestPlayer#NA1' })).toBeInTheDocument())
     expect(screen.getByText('Gold 2')).toBeInTheDocument()
     expect(screen.getByText('Here is your coaching report.')).toBeInTheDocument()
   })
