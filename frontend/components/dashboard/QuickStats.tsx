@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { Target, Swords, Activity } from 'lucide-react'
 import { getAllAnalyses } from '@/lib/storage'
+import { Stagger, Item } from '@/components/ui/motion'
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 
 export function QuickStats() {
   const [stats, setStats] = useState({ avgHS: 0, avgADR: 0, count: 0 })
@@ -15,26 +17,30 @@ export function QuickStats() {
     }
     const valid = analyses.filter(a => a.riot_report)
     const avgHS  = valid.reduce((s, a) => s + (a.riot_report?.avg_headshot_pct ?? 0), 0) / (valid.length || 1)
-    const avgADR = valid.reduce((s, a) => s + (a.riot_report?.avg_adr ?? 0), 0)          / (valid.length || 1)
+    const avgADR = valid.reduce((s, a) => s + (a.riot_report?.avg_adr ?? 0), 0) / (valid.length || 1)
     setStats({ avgHS, avgADR, count: analyses.length })
   }, [])
 
   const cards = [
-    { label: 'Avg HS%',        value: stats.avgHS  ? `${stats.avgHS.toFixed(1)}%`  : '—', icon: Target   },
-    { label: 'Avg ADR',        value: stats.avgADR ? stats.avgADR.toFixed(0)        : '—', icon: Swords   },
-    { label: 'Analyses saved', value: stats.count  ? String(stats.count)            : '0', icon: Activity },
+    { label: 'Avg HS%',        value: stats.avgHS,  decimals: 1, suffix: '%', icon: Target },
+    { label: 'Avg ADR',        value: stats.avgADR, decimals: 0, suffix: '',  icon: Swords },
+    { label: 'Analyses saved', value: stats.count,  decimals: 0, suffix: '',  icon: Activity },
   ]
 
   return (
-    <div className="grid grid-cols-3 gap-px bg-[#1F2130]">
-      {cards.map(({ label, value, icon: Icon }) => (
-        <div key={label} className="bg-[#111318] p-5">
-          <div className="flex items-center gap-2 text-[#42495A] text-xs uppercase tracking-widest mb-2">
-            <Icon className="w-3 h-3" /> {label}
+    <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {cards.map(({ label, value, decimals, suffix, icon: Icon }) => (
+        <Item key={label}>
+          <div className="glass glass-hover rounded-xl p-5">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
+              <Icon className="h-3.5 w-3.5 text-[#FF4655]" /> {label}
+            </div>
+            <div className="font-display text-3xl font-bold text-[#F0F1F5]">
+              <AnimatedCounter value={value} decimals={decimals} suffix={suffix} />
+            </div>
           </div>
-          <div className="font-display text-3xl font-bold text-[#F0F1F5]">{value}</div>
-        </div>
+        </Item>
       ))}
-    </div>
+    </Stagger>
   )
 }

@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, TrendingUp, Target, Swords, Trophy, AlertCircle } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, TrendingUp, Target, Swords, Trophy, AlertCircle, Crosshair, Sparkles } from 'lucide-react'
 import { saveAnalysis } from '@/lib/storage'
 import { logger } from '@/lib/logger'
+import { Stagger, Item, Reveal } from '@/components/ui/motion'
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 
 interface Report {
   report_id: string
@@ -16,7 +19,7 @@ interface Report {
   error:       string | null
 }
 
-const POLL_MS     = 3000
+const POLL_MS      = 3000
 const POLL_TIMEOUT = 90_000  // give up after 90s
 
 const MISTAKE_COLORS: Record<string, string> = {
@@ -50,7 +53,7 @@ export default function AnalysisReportPage() {
     const startedAt = Date.now()
 
     const poll = async () => {
-      // Hard timeout — surface an error instead of spinning forever
+      // Hard timeout, surface an error instead of spinning forever
       if (Date.now() - startedAt > POLL_TIMEOUT) {
         if (!cancelled) setError('Analysis timed out. Check that RIOT_API_KEY and ANTHROPIC_API_KEY are set in .env, then try again.')
         return
@@ -77,7 +80,7 @@ export default function AnalysisReportPage() {
         }
       } catch (e: any) {
         logger.error('Polling report failed', id, e)
-        if (!cancelled) setError(e.message || 'Could not load report — is the API running?')
+        if (!cancelled) setError(e.message || 'Could not load report. Is the API running?')
       }
     }
 
@@ -85,43 +88,50 @@ export default function AnalysisReportPage() {
     return () => { cancelled = true }
   }, [id])
 
+  // --- Error ---
   if (error || report?.status === 'error') {
     const errorMessage = report?.status === 'error' ? report.error || 'Unknown error' : error
     return (
-      <div className="min-h-screen bg-[#0A0B0F] flex items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <AlertCircle className="w-10 h-10 text-[#FF4655] mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Analysis failed</h2>
-          <p className="text-[#7A8496] text-sm">{errorMessage}</p>
-          <Link href="/analysis/new" className="inline-block mt-6 text-[#FF4655] text-sm hover:underline">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07080C] px-4">
+        <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="glass relative max-w-md rounded-2xl p-10 text-center"
+        >
+          <AlertCircle className="mx-auto mb-4 h-10 w-10 text-[#FF4655]" />
+          <h2 className="mb-2 text-xl font-bold">Analysis failed</h2>
+          <p className="text-sm text-[#7A8496]">{errorMessage}</p>
+          <Link
+            href="/analysis/new"
+            className="clip-corner-sm mt-6 inline-block bg-[#FF4655] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#CC3542]"
+          >
             Try again
           </Link>
-        </div>
+        </motion.div>
       </div>
     )
   }
 
+  // --- Loading ---
   if (!report || report.status !== 'done') {
     return (
-      <div className="min-h-screen bg-[#0A0B0F] flex flex-col items-center justify-center gap-6">
-        <div className="w-10 h-10 border-2 border-[#1F2130] border-t-[#FF4655] rounded-full animate-spin" />
-        <p className="text-[#7A8496] text-sm">{loadingMsg}</p>
-      </div>
-    )
-  }
-
-  // --- Error ---
-  if (report.status === 'error') {
-    return (
-      <div className="min-h-screen bg-[#0A0B0F] flex items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <AlertCircle className="w-10 h-10 text-[#FF4655] mx-auto mb-4" />
-          <h2 className="text-xl font-bold mb-2">Analysis failed</h2>
-          <p className="text-[#7A8496] text-sm">{report.error || 'Unknown error'}</p>
-          <Link href="/analysis/new" className="inline-block mt-6 text-[#FF4655] text-sm hover:underline">
-            Try again
-          </Link>
+      <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-[#07080C]">
+        <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
+        <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
+        <div className="relative">
+          <div className="h-14 w-14 animate-spin rounded-full border-2 border-[#1F2130] border-t-[#FF4655]" />
+          <Crosshair className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-[#FF4655]" />
         </div>
+        <motion.p
+          key={loadingMsg}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative text-sm text-[#7A8496]"
+        >
+          {loadingMsg}
+        </motion.p>
       </div>
     )
   }
@@ -129,167 +139,211 @@ export default function AnalysisReportPage() {
   const riot     = report.riot_report
   const coaching = report.coaching
 
+  const statCards = [
+    { label: 'Headshot %', value: riot?.avg_headshot_pct ?? 0, decimals: 1, suffix: '%', icon: Target },
+    { label: 'Avg ADR',    value: riot?.avg_adr ?? 0,          decimals: 0, suffix: '',  icon: Swords },
+    { label: 'Win rate',   value: (riot?.win_rate ?? 0) * 100, decimals: 0, suffix: '%', icon: Trophy },
+  ]
+
   return (
-    <div className="min-h-screen bg-[#0A0B0F]">
+    <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
+      <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
 
       {/* Nav */}
-      <nav className="border-b border-[#1F2130] px-6 h-14 flex items-center justify-between sticky top-0 bg-[#0A0B0F]/95 backdrop-blur z-10">
-        <Link href="/" className="font-display text-lg font-bold tracking-widest text-[#FF4655] uppercase">
-          AimLab<span className="text-[#F0F1F5]">VAL</span>
+      <nav className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#1F2130] bg-[#07080C]/85 px-6 backdrop-blur">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center clip-corner-sm bg-gradient-to-br from-[#FF4655] to-[#B8323D]">
+            <Crosshair className="h-4 w-4 text-white" />
+          </span>
+          <span className="font-display text-lg font-bold uppercase tracking-widest">
+            <span className="text-[#FF4655]">AimLab</span>
+            <span className="text-[#F0F1F5]">VAL</span>
+          </span>
         </Link>
-        <Link href="/analysis/new"
-          className="clip-corner-sm bg-[#FF4655] text-white text-xs font-semibold px-3 py-1.5 hover:bg-[#CC3542] transition">
-          New analysis
-        </Link>
+        <div className="flex items-center gap-4">
+          <Link href="/tracker" className="text-xs text-[#7A8496] transition hover:text-[#F0F1F5]">
+            Tracker
+          </Link>
+          <Link
+            href="/analysis/new"
+            className="clip-corner-sm bg-[#FF4655] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#CC3542]"
+          >
+            New analysis
+          </Link>
+        </div>
       </nav>
 
-      <div className="max-w-4xl mx-auto px-6 py-12 space-y-8 fade-in">
+      <div className="relative mx-auto max-w-4xl space-y-8 px-6 py-12">
 
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <Link href="/analysis/new" className="inline-flex items-center gap-1 text-[#42495A] text-xs hover:text-[#F0F1F5] transition mb-4">
-              <ArrowLeft className="w-3 h-3" /> New analysis
-            </Link>
-            <h1 className="font-display text-4xl font-bold tracking-tight">
-              {riot?.game_name}<span className="text-[#42495A]">#{riot?.tag_line}</span>
-            </h1>
-            <div className="flex items-center gap-4 mt-2 text-[#7A8496] text-sm">
-              <span className="text-[#FF4655] font-semibold">{riot?.current_rank || 'Unranked'}</span>
-              <span>·</span>
-              <span>{riot?.matches?.length || 0} matches</span>
-              <span>·</span>
-              <span className={riot?.rank_delta >= 0 ? 'text-green-400' : 'text-[#FF4655]'}>
-                {riot?.rank_delta >= 0 ? '+' : ''}{riot?.rank_delta} tiers
-              </span>
-            </div>
+        <Reveal>
+          <Link
+            href="/analysis/new"
+            className="mb-4 inline-flex items-center gap-1 text-xs text-[#42495A] transition hover:text-[#F0F1F5]"
+          >
+            <ArrowLeft className="h-3 w-3" /> New analysis
+          </Link>
+          <h1 className="font-display text-4xl font-bold tracking-tight">
+            {riot?.game_name}
+            <span className="text-[#42495A]">#{riot?.tag_line}</span>
+          </h1>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-[#7A8496]">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-3 py-1 font-semibold text-[#FF4655]">
+              {riot?.current_rank || 'Unranked'}
+            </span>
+            <span>{riot?.matches?.length || 0} matches</span>
+            <span className="text-[#42495A]">·</span>
+            <span className={riot?.rank_delta >= 0 ? 'text-emerald-400' : 'text-[#FF4655]'}>
+              {riot?.rank_delta >= 0 ? '+' : ''}{riot?.rank_delta} tiers
+            </span>
           </div>
-        </div>
+        </Reveal>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[#1F2130]">
-          {[
-            { label: 'Headshot %', value: `${riot?.avg_headshot_pct?.toFixed(1) ?? '—'}%`, icon: Target },
-            { label: 'Avg ADR',    value: riot?.avg_adr?.toFixed(0) ?? '—',                icon: Swords },
-            { label: 'Win rate',   value: `${((riot?.win_rate ?? 0) * 100).toFixed(0)}%`,  icon: Trophy },
-            { label: 'Top agent',  value: riot?.top_agent ?? '—',                          icon: TrendingUp },
-          ].map(({ label, value, icon: Icon }) => (
-            <div key={label} className="bg-[#111318] p-5">
-              <div className="flex items-center gap-2 text-[#42495A] text-xs uppercase tracking-widest mb-2">
-                <Icon className="w-3 h-3" /> {label}
+        <Stagger className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {statCards.map(({ label, value, decimals, suffix, icon: Icon }) => (
+            <Item key={label}>
+              <div className="glass glass-hover h-full rounded-xl p-5">
+                <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
+                  <Icon className="h-3.5 w-3.5 text-[#FF4655]" /> {label}
+                </div>
+                <div className="font-display text-3xl font-bold text-[#F0F1F5]">
+                  <AnimatedCounter value={value} decimals={decimals} suffix={suffix} />
+                </div>
               </div>
-              <div className="font-display text-3xl font-bold text-[#F0F1F5]">{value}</div>
-            </div>
+            </Item>
           ))}
-        </div>
+          <Item>
+            <div className="glass glass-hover h-full rounded-xl p-5">
+              <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
+                <TrendingUp className="h-3.5 w-3.5 text-[#FF4655]" /> Top agent
+              </div>
+              <div className="font-display text-3xl font-bold text-[#F0F1F5]">{riot?.top_agent ?? '-'}</div>
+            </div>
+          </Item>
+        </Stagger>
 
         {/* AI Coaching */}
         {coaching && (
-          <div className="border border-[#1F2130] bg-[#111318]">
-            <div className="border-b border-[#1F2130] px-6 py-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-[#FF4655] rounded-full" />
-              <span className="text-xs uppercase tracking-widest text-[#42495A]">AI Coaching Report</span>
+          <Reveal>
+            <div className="glass overflow-hidden rounded-xl">
+              <div className="flex items-center gap-2 border-b border-[#1F2130] px-6 py-4">
+                <Sparkles className="h-4 w-4 text-[#FF4655]" />
+                <span className="text-xs uppercase tracking-widest text-[#7A8496]">AI Coaching Report</span>
+              </div>
+              <div className="space-y-6 p-6">
+                <p className="leading-relaxed text-[#F0F1F5]">{coaching.summary}</p>
+
+                {coaching.top_weakness && (
+                  <div className="border-l-2 border-[#FF4655] pl-4">
+                    <p className="mb-1 text-xs uppercase tracking-widest text-[#42495A]">Top weakness</p>
+                    <p className="font-semibold text-[#FF4655]">{coaching.top_weakness}</p>
+                  </div>
+                )}
+
+                {coaching.tips?.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-xs uppercase tracking-widest text-[#42495A]">Actionable tips</p>
+                    <ol className="space-y-3">
+                      {coaching.tips.map((tip: string, i: number) => (
+                        <motion.li
+                          key={i}
+                          initial={{ opacity: 0, x: -8 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.06 }}
+                          className="flex gap-3 text-sm leading-relaxed text-[#7A8496]"
+                        >
+                          <span className="w-5 flex-shrink-0 font-display font-bold text-[#FF4655]">{i + 1}.</span>
+                          {tip}
+                        </motion.li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
+                {coaching.encouragement && (
+                  <p className="border-t border-[#1F2130] pt-4 text-sm italic text-[#7A8496]">
+                    {coaching.encouragement}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="p-6 space-y-6">
-
-              <p className="text-[#F0F1F5] leading-relaxed">{coaching.summary}</p>
-
-              {coaching.top_weakness && (
-                <div className="border-l-2 border-[#FF4655] pl-4">
-                  <p className="text-xs uppercase tracking-widest text-[#42495A] mb-1">Top weakness</p>
-                  <p className="text-[#FF4655] font-semibold">{coaching.top_weakness}</p>
-                </div>
-              )}
-
-              {coaching.tips?.length > 0 && (
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-[#42495A] mb-3">Actionable tips</p>
-                  <ol className="space-y-3">
-                    {coaching.tips.map((tip: string, i: number) => (
-                      <li key={i} className="flex gap-3 text-sm text-[#7A8496] leading-relaxed">
-                        <span className="text-[#FF4655] font-display font-bold flex-shrink-0 w-5">{i + 1}.</span>
-                        {tip}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-
-              {coaching.encouragement && (
-                <p className="text-[#7A8496] text-sm italic border-t border-[#1F2130] pt-4">
-                  {coaching.encouragement}
-                </p>
-              )}
-
-            </div>
-          </div>
+          </Reveal>
         )}
 
         {/* CV report (Phase 2) */}
         {report.cv_report && (
-          <div className="border border-[#1F2130] bg-[#111318]">
-            <div className="border-b border-[#1F2130] px-6 py-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-[#FF4655] rounded-full" />
-              <span className="text-xs uppercase tracking-widest text-[#42495A]">Clip Analysis</span>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <p className="text-[#42495A] text-xs uppercase tracking-widest mb-1">Engagements</p>
-                  <p className="font-display text-2xl font-bold">{report.cv_report.total_engagements}</p>
-                </div>
-                <div>
-                  <p className="text-[#42495A] text-xs uppercase tracking-widest mb-1">Mistakes/min</p>
-                  <p className="font-display text-2xl font-bold">{report.cv_report.mistakes_per_minute}</p>
-                </div>
-                <div>
-                  <p className="text-[#42495A] text-xs uppercase tracking-widest mb-1">Most impactful</p>
-                  <p className="font-bold text-[#FF4655]">{report.cv_report.most_impactful || '—'}</p>
-                </div>
+          <Reveal>
+            <div className="glass overflow-hidden rounded-xl">
+              <div className="flex items-center gap-2 border-b border-[#1F2130] px-6 py-4">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#FF4655]" />
+                <span className="text-xs uppercase tracking-widest text-[#7A8496]">Clip Analysis</span>
               </div>
-
-              {report.cv_report.ranked_mistakes?.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  {report.cv_report.ranked_mistakes.map((r: any) => (
-                    <div key={r.mistake} className="flex items-center gap-3 text-sm">
-                      <span className="text-[#42495A] w-4 text-right text-xs">{r.rank}.</span>
-                      <span className="text-[#7A8496] w-40">{r.label}</span>
-                      <div className="flex-1 bg-[#1F2130] rounded-full h-1.5">
-                        <div
-                          className={`h-1.5 rounded-full ${MISTAKE_COLORS[r.mistake] ?? 'bg-[#FF4655]'}`}
-                          style={{ width: r.share_of_total }}
-                        />
-                      </div>
-                      <span className="text-[#42495A] text-xs w-12 text-right">{r.share_of_total}</span>
-                    </div>
-                  ))}
+              <div className="space-y-4 p-6">
+                <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-3">
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-widest text-[#42495A]">Engagements</p>
+                    <p className="font-display text-2xl font-bold">{report.cv_report.total_engagements}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-widest text-[#42495A]">Mistakes/min</p>
+                    <p className="font-display text-2xl font-bold">{report.cv_report.mistakes_per_minute}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs uppercase tracking-widest text-[#42495A]">Most impactful</p>
+                    <p className="font-bold text-[#FF4655]">{report.cv_report.most_impactful || '-'}</p>
+                  </div>
                 </div>
-              )}
+
+                {report.cv_report.ranked_mistakes?.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    {report.cv_report.ranked_mistakes.map((r: any) => (
+                      <div key={r.mistake} className="flex items-center gap-3 text-sm">
+                        <span className="w-4 text-right text-xs text-[#42495A]">{r.rank}.</span>
+                        <span className="w-40 text-[#7A8496]">{r.label}</span>
+                        <div className="h-1.5 flex-1 rounded-full bg-[#1F2130]">
+                          <motion.div
+                            className={`h-1.5 rounded-full ${MISTAKE_COLORS[r.mistake] ?? 'bg-[#FF4655]'}`}
+                            initial={{ width: 0 }}
+                            whileInView={{ width: r.share_of_total }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.9, ease: 'easeOut' }}
+                          />
+                        </div>
+                        <span className="w-12 text-right text-xs text-[#42495A]">{r.share_of_total}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          </Reveal>
         )}
 
         {/* Match history */}
         {riot?.matches?.length > 0 && (
-          <div className="border border-[#1F2130] bg-[#111318]">
-            <div className="border-b border-[#1F2130] px-6 py-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-[#FF4655] rounded-full" />
-              <span className="text-xs uppercase tracking-widest text-[#42495A]">Recent matches</span>
+          <Reveal>
+            <div className="glass overflow-hidden rounded-xl">
+              <div className="flex items-center gap-2 border-b border-[#1F2130] px-6 py-4">
+                <div className="h-1.5 w-1.5 rounded-full bg-[#FF4655]" />
+                <span className="text-xs uppercase tracking-widest text-[#7A8496]">Recent matches</span>
+              </div>
+              <div className="divide-y divide-[#1F2130]">
+                {riot.matches.slice(0, 8).map((m: any, i: number) => (
+                  <div key={i} className="flex items-center gap-4 px-6 py-3 text-sm transition hover:bg-white/[0.02]">
+                    <span className={`w-4 text-xs font-bold ${m.won ? 'text-emerald-400' : 'text-[#FF4655]'}`}>
+                      {m.won ? 'W' : 'L'}
+                    </span>
+                    <span className="w-24 truncate text-[#7A8496]">{m.agent}</span>
+                    <span className="font-mono text-[#F0F1F5]">{m.kills}/{m.deaths}/{m.assists}</span>
+                    <span className="ml-auto text-[#42495A]">{m.headshot_pct?.toFixed(0)}% HS</span>
+                    <span className="w-16 text-right text-[#42495A]">{m.adr?.toFixed(0)} ADR</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="divide-y divide-[#1F2130]">
-              {riot.matches.slice(0, 8).map((m: any, i: number) => (
-                <div key={i} className="flex items-center gap-4 px-6 py-3 text-sm hover:bg-[#181A22] transition">
-                  <span className={`text-xs font-bold w-4 ${m.won ? 'text-green-400' : 'text-[#FF4655]'}`}>
-                    {m.won ? 'W' : 'L'}
-                  </span>
-                  <span className="text-[#7A8496] w-24 truncate">{m.agent}</span>
-                  <span className="font-mono text-[#F0F1F5]">{m.kills}/{m.deaths}/{m.assists}</span>
-                  <span className="text-[#42495A] ml-auto">{m.headshot_pct?.toFixed(0)}% HS</span>
-                  <span className="text-[#42495A] w-16 text-right">{m.adr?.toFixed(0)} ADR</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          </Reveal>
         )}
 
       </div>

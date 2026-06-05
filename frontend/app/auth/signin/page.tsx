@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Zap } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, Zap, Mail, Crosshair, CheckCircle2 } from 'lucide-react'
+import { easeOut } from '@/components/ui/motion'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -42,7 +44,7 @@ export default function SignInPage() {
         body: JSON.stringify({ email: 'dev@localhost', riot_id: null }),
         credentials: 'include',
       })
-      if (!res.ok) throw new Error('Dev bypass failed — is the API running with DEV_MODE=true?')
+      if (!res.ok) throw new Error('Dev bypass failed. Is the API running with DEV_MODE=true?')
       router.push('/analysis/new')
     } catch (e: any) {
       setError(e.message)
@@ -52,71 +54,94 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0B0F] flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07080C] px-4">
+      <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
+      <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
 
-        <Link href="/" className="inline-flex items-center gap-2 text-[#42495A] text-sm hover:text-[#F0F1F5] transition mb-10">
-          <ArrowLeft className="w-4 h-4" /> Back
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: easeOut }}
+        className="relative w-full max-w-sm"
+      >
+        <Link
+          href="/"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-[#42495A] transition hover:text-[#F0F1F5]"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
         </Link>
 
-        <div className="mb-8">
-          <span className="font-display text-2xl font-bold tracking-widest text-[#FF4655] uppercase">
-            AimLab<span className="text-[#F0F1F5]">VAL</span>
-          </span>
-          <h1 className="text-2xl font-bold mt-4">Sign in</h1>
-          <p className="text-[#7A8496] text-sm mt-1">We'll send a link to your email — no password needed.</p>
-        </div>
-
-        {error && (
-          <div className="border border-[#FF4655]/40 bg-[#FF4655]/5 text-[#FF4655] text-sm px-4 py-3 mb-6">
-            {error}
+        <div className="glass rounded-2xl p-8">
+          <div className="mb-7">
+            <span className="flex h-10 w-10 items-center justify-center clip-corner-sm bg-gradient-to-br from-[#FF4655] to-[#B8323D] shadow-red-glow-sm">
+              <Crosshair className="h-5 w-5 text-white" />
+            </span>
+            <h1 className="mt-5 text-2xl font-bold">Sign in</h1>
+            <p className="mt-1 text-sm text-[#7A8496]">
+              We will send a link to your email. No password needed.
+            </p>
           </div>
-        )}
 
-        {sent ? (
-          <div className="border border-blue-500/40 bg-blue-500/5 text-blue-500 text-sm px-4 py-4">
-            <p className="font-semibold">Check your email</p>
-            <p className="text-[#7A8496] mt-1">Link sent to {email}</p>
-          </div>
-        ) : (
-          <form onSubmit={handleMagicLink} className="space-y-4">
-            <div>
-              <label className="block text-[#7A8496] text-xs uppercase tracking-widest mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-                className="w-full bg-[#111318] border border-[#1F2130] text-[#F0F1F5] px-4 py-3 text-sm focus:outline-none focus:border-[#FF4655] transition placeholder-[#42495A]"
-              />
+          {error && (
+            <div className="mb-6 border border-[#FF4655]/40 bg-[#FF4655]/5 px-4 py-3 text-sm text-[#FF4655]">
+              {error}
             </div>
+          )}
+
+          {sent ? (
+            <div className="flex items-start gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-4 py-4 text-sm">
+              <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-400" />
+              <div>
+                <p className="font-semibold text-emerald-300">Check your email</p>
+                <p className="mt-1 text-[#7A8496]">Link sent to {email}</p>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleMagicLink} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-xs uppercase tracking-widest text-[#7A8496]">
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#42495A]" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    required
+                    className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-3 pl-10 pr-4 text-sm text-[#F0F1F5] placeholder-[#42495A] transition focus:border-[#FF4655] focus:outline-none"
+                  />
+                </div>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="clip-corner w-full bg-[#FF4655] py-3 text-sm font-semibold text-white transition hover:bg-[#CC3542] disabled:opacity-40"
+              >
+                {loading ? 'Sending...' : 'Send magic link'}
+              </motion.button>
+            </form>
+          )}
+
+          <div className="mt-8 border-t border-[#1F2130] pt-6">
+            <p className="mb-3 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
+              <Zap className="h-3 w-3 text-[#FF4655]" /> Dev bypass
+            </p>
             <button
-              type="submit"
-              disabled={loading}
-              className="clip-corner w-full bg-[#FF4655] text-white font-semibold py-3 text-sm hover:bg-[#CC3542] transition disabled:opacity-40">
-              {loading ? 'Sending...' : 'Send magic link'}
+              onClick={handleDevBypass}
+              disabled={devLoading}
+              className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-2.5 text-sm text-[#7A8496] transition hover:border-[#FF4655]/50 hover:text-[#F0F1F5] disabled:opacity-40"
+            >
+              {devLoading ? 'Creating session...' : 'Skip auth, go straight to analysis'}
             </button>
-          </form>
-        )}
-
-        {/* Dev bypass */}
-        <div className="mt-8 border-t border-[#1F2130] pt-6">
-          <p className="text-[#42495A] text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-            <Zap className="w-3 h-3 text-[#FF4655]" /> Dev bypass
-          </p>
-          <button
-            onClick={handleDevBypass}
-            disabled={devLoading}
-            className="w-full border border-[#1F2130] bg-[#111318] text-[#7A8496] text-sm py-2.5 hover:border-[#FF4655]/50 hover:text-[#F0F1F5] transition disabled:opacity-40">
-            {devLoading ? 'Creating session...' : 'Skip auth → go straight to analysis'}
-          </button>
-          <p className="text-[#42495A] text-xs mt-2">
-            Requires API running at localhost:8000 with DEV_MODE=true
-          </p>
+            <p className="mt-2 text-xs text-[#42495A]">
+              Requires API running at localhost:8000 with DEV_MODE=true
+            </p>
+          </div>
         </div>
-
-      </div>
+      </motion.div>
     </div>
   )
 }

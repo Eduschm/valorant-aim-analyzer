@@ -17,7 +17,7 @@ export function StatsTrend({ label, current, prev, format }: StatsTrendProps) {
   const dn = delta !== null && delta < 0
 
   return (
-    <div className="bg-[#111318] border border-[#1F2130] p-5">
+    <div className="glass glass-hover rounded-xl p-5">
       <p className="text-xs uppercase tracking-widest text-[#42495A] mb-3">{label}</p>
       <p className="font-display text-4xl font-bold text-[#F0F1F5] mb-2">{format(current)}</p>
       {delta !== null ? (

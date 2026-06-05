@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Rajdhani:wght@500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
@@ -15,55 +15,127 @@ html {
 }
 
 body {
-  background-color: #0D0E14;
+  background-color: #07080C;
   color: #E8EAF0;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #13141C; }
-::-webkit-scrollbar-thumb { background: #FF4655; border-radius: 3px; }
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0B0C12; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #FF4655, #B8323D);
+  border-radius: 4px;
+  border: 2px solid #0B0C12;
+}
+::-webkit-scrollbar-thumb:hover { background: #FF4655; }
 
-/* Valorant-style diagonal clip */
+::selection { background: rgba(255, 70, 85, 0.3); color: #fff; }
+
+/* ---------- Valorant-style diagonal clip ---------- */
 .clip-corner {
   clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
 }
-
 .clip-corner-sm {
   clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
 }
 
-/* Red glow */
-.glow-red {
-  box-shadow: 0 0 20px rgba(255, 70, 85, 0.25);
+/* ---------- Glow ---------- */
+.glow-red { box-shadow: 0 0 20px rgba(255, 70, 85, 0.25); }
+.text-glow { text-shadow: 0 0 24px rgba(255, 70, 85, 0.45); }
+
+/* ---------- Glass surfaces ---------- */
+.glass {
+  background: linear-gradient(160deg, rgba(23, 25, 34, 0.72) 0%, rgba(13, 14, 20, 0.72) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.glass-hover {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.glass-hover:hover {
+  border-color: rgba(255, 70, 85, 0.35);
+  box-shadow: 0 8px 40px -12px rgba(255, 70, 85, 0.25);
 }
 
-/* Scan line animation for loading */
+/* ---------- Gradient text ---------- */
+.gradient-text {
+  background: linear-gradient(120deg, #FFFFFF 0%, #FF8A93 45%, #FF4655 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---------- Animated grid + glow background ---------- */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 70, 85, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 70, 85, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+.bg-radial-glow {
+  background:
+    radial-gradient(60% 50% at 50% -10%, rgba(255, 70, 85, 0.18) 0%, transparent 60%),
+    radial-gradient(50% 40% at 90% 10%, rgba(120, 80, 255, 0.10) 0%, transparent 60%);
+}
+
+/* Subtle moving aurora behind hero */
+@keyframes aurora {
+  0%   { transform: translate3d(-4%, -2%, 0) scale(1); }
+  50%  { transform: translate3d(4%, 3%, 0) scale(1.08); }
+  100% { transform: translate3d(-4%, -2%, 0) scale(1); }
+}
+.aurora { animation: aurora 14s ease-in-out infinite; }
+
+/* ---------- Loading scan line ---------- */
 @keyframes scan {
   0% { transform: translateY(-100%); }
   100% { transform: translateY(400%); }
 }
+.scan-line { animation: scan 2s linear infinite; }
 
-.scan-line {
-  animation: scan 2s linear infinite;
-}
-
-/* Fade in */
+/* ---------- Fade in (kept for backward compat) ---------- */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+.fade-in { animation: fadeIn 0.4s ease forwards; }
 
-.fade-in {
-  animation: fadeIn 0.4s ease forwards;
-}
-
-/* Pulse for live indicator */
+/* ---------- Pulse for live indicator ---------- */
 @keyframes pulse-red {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
-
 .pulse-red { animation: pulse-red 1.5s ease infinite; }
+
+/* ---------- Shimmer skeleton ---------- */
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: shimmer 1.6s infinite;
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
