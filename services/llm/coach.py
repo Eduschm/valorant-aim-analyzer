@@ -40,7 +40,7 @@ def build_prompt(riot: RiotReport, cv: CVReport | None = None) -> str:
 
     lines = [
         f"Player: {riot.game_name}#{riot.tag_line}",
-        f"Rank: {riot.current_rank} (MMR change last match: {riot.rank_delta:+d})",
+        f"Rank: {riot.current_rank} (rank change over last matches: {riot.rank_delta:+d})",
         f"Last {n} matches:",
         f"  Win rate:          {riot.win_rate * 100:.0f}%",
         f"  Avg headshot %:    {riot.avg_headshot_pct:.1f}%",

@@ -9,6 +9,27 @@ from collections import Counter
 from contracts.schemas import MatchStat, RiotReport
 
 
+# Riot competitiveTier int -> human-readable rank name.
+# Tiers 1-2 are unused (legacy); anything unmapped falls back to "Unranked".
+TIER_NAMES: dict[int, str] = {
+    0:  "Unranked",
+    3:  "Iron 1",      4:  "Iron 2",      5:  "Iron 3",
+    6:  "Bronze 1",    7:  "Bronze 2",    8:  "Bronze 3",
+    9:  "Silver 1",    10: "Silver 2",    11: "Silver 3",
+    12: "Gold 1",      13: "Gold 2",      14: "Gold 3",
+    15: "Platinum 1",  16: "Platinum 2",  17: "Platinum 3",
+    18: "Diamond 1",   19: "Diamond 2",   20: "Diamond 3",
+    21: "Ascendant 1", 22: "Ascendant 2", 23: "Ascendant 3",
+    24: "Immortal 1",  25: "Immortal 2",  26: "Immortal 3",
+    27: "Radiant",
+}
+
+
+def tier_name(tier: int) -> str:
+    """Map a Riot competitiveTier integer to a rank label."""
+    return TIER_NAMES.get(tier, "Unranked")
+
+
 def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
     """
     Extract one player's MatchStat from a raw Riot match payload.
@@ -48,6 +69,9 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
     # (resolve to human names via Valorant content API if needed later)
     agent = player.get("characterId", "Unknown")
 
+    # Riot exposes the player's rank for the match via competitiveTier
+    competitive_tier = int(player.get("competitiveTier", 0) or 0)
+
     # Weapon: not directly in player object; would need round-level data
     # Use the most-used weapon from round stats if available
     weapon = _extract_top_weapon(raw_match, puuid)
@@ -64,6 +88,7 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
         headshot_pct=round(hs_pct, 1),
         adr=round(adr, 1),
         won=won,
+        competitive_tier=competitive_tier,
     )
 
 
@@ -86,22 +111,21 @@ def _extract_top_weapon(raw_match: dict, puuid: str) -> str:
     return "Unknown"
 
 
-def parse_rank(raw_rank: dict) -> dict:
+def derive_rank(matches: list[MatchStat]) -> dict:
     """
-    Extract current rank string and rank_delta from Henrik MMR payload.
+    Derive current rank and rank_delta from Riot match data.
+    `matches` is newest-first (matches[0] is the most recent game).
+    rank_delta is the competitiveTier change from the oldest fetched
+    match to the newest (+ = climbed, - = dropped).
     Returns {"rank": str, "rank_delta": int}
     """
-    if not raw_rank:
+    ranked = [m for m in matches if m.competitive_tier > 0]
+    if not ranked:
         return {"rank": "Unranked", "rank_delta": 0}
 
-    try:
-        data         = raw_rank.get("data", {})
-        current      = data.get("current_data", {})
-        rank         = current.get("currenttierpatched", "Unranked") or "Unranked"
-        rank_delta   = current.get("mmr_change_to_last_game", 0) or 0
-        return {"rank": rank, "rank_delta": int(rank_delta)}
-    except Exception:
-        return {"rank": "Unranked", "rank_delta": 0}
+    current_tier = ranked[0].competitive_tier
+    rank_delta   = current_tier - ranked[-1].competitive_tier
+    return {"rank": tier_name(current_tier), "rank_delta": int(rank_delta)}
 
 
 def build_riot_report(

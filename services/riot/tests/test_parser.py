@@ -4,7 +4,7 @@ import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 import pytest
-from services.riot.parser import parse_match, parse_rank, build_riot_report
+from services.riot.parser import parse_match, derive_rank, tier_name, build_riot_report
 from contracts.schemas import MatchStat
 
 
@@ -17,6 +17,7 @@ FIXTURE_MATCH = {
             "puuid": PUUID,
             "teamId": "Red",
             "characterId": "jett-uuid",
+            "competitiveTier": 13,
             "stats": {
                 "kills": 18, "deaths": 12, "assists": 3,
                 "headshots": 10, "bodyshots": 25, "legshots": 5,
@@ -46,6 +47,15 @@ def test_parse_match_basic():
     assert stat.won is True
     assert stat.match_id == "match-abc"
     assert stat.agent == "jett-uuid"
+    assert stat.competitive_tier == 13
+
+
+def test_parse_match_missing_competitive_tier_defaults_zero():
+    match = {**FIXTURE_MATCH,
+             "players": [{k: v for k, v in FIXTURE_MATCH["players"][0].items()
+                          if k != "competitiveTier"}]}
+    stat = parse_match(match, PUUID)
+    assert stat.competitive_tier == 0
 
 
 def test_parse_match_headshot_pct():
@@ -74,15 +84,42 @@ def test_parse_match_zero_shots():
     assert stat.headshot_pct == 0.0
 
 
-def test_parse_rank_valid():
-    raw = {"data": {"current_data": {"currenttierpatched": "Gold 2", "mmr_change_to_last_game": 15}}}
-    result = parse_rank(raw)
-    assert result["rank"] == "Gold 2"
-    assert result["rank_delta"] == 15
+def test_tier_name_mapping():
+    assert tier_name(13) == "Gold 2"
+    assert tier_name(27) == "Radiant"
+    assert tier_name(0) == "Unranked"
+    assert tier_name(99) == "Unranked"   # unmapped tier
 
 
-def test_parse_rank_empty():
-    result = parse_rank({})
+def _ranked(tier: int) -> MatchStat:
+    return MatchStat("m", "Jett", "Vandal", 1, 1, 1, 0.0, 0.0, True, competitive_tier=tier)
+
+
+def test_derive_rank_uses_most_recent_match():
+    # newest-first: current rank is matches[0]
+    matches = [_ranked(14), _ranked(13), _ranked(12)]
+    result = derive_rank(matches)
+    assert result["rank"] == "Gold 3"
+    # climbed from Gold 1 (12) to Gold 3 (14)
+    assert result["rank_delta"] == 2
+
+
+def test_derive_rank_negative_delta():
+    matches = [_ranked(12), _ranked(14)]   # dropped from Gold 3 to Gold 1
+    result = derive_rank(matches)
+    assert result["rank"] == "Gold 1"
+    assert result["rank_delta"] == -2
+
+
+def test_derive_rank_unranked_when_no_tiers():
+    matches = [_ranked(0), _ranked(0)]
+    result = derive_rank(matches)
+    assert result["rank"] == "Unranked"
+    assert result["rank_delta"] == 0
+
+
+def test_derive_rank_empty():
+    result = derive_rank([])
     assert result["rank"] == "Unranked"
     assert result["rank_delta"] == 0
 

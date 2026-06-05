@@ -1,4 +1,4 @@
-"""Riot Games + Henrik Dev API async HTTP client."""
+"""Riot Games API async HTTP client."""
 
 from __future__ import annotations
 
@@ -11,8 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-RIOT_API_KEY   = os.getenv("RIOT_API_KEY", "")
-HENRIK_API_KEY = os.getenv("HENRIK_API_KEY", "")
+RIOT_API_KEY = os.getenv("RIOT_API_KEY", "")
 
 REGIONS = {
     "na":    "americas",
@@ -43,7 +42,7 @@ class RiotAPIError(Exception):
 
 class RiotClient:
     """
-    Async HTTP client for Riot + Henrik Dev APIs.
+    Async HTTP client for the Riot Games API.
     All public methods raise RiotAPIError on non-2xx.
     Use as an async context manager:
         async with RiotClient("na") as client:
@@ -113,32 +112,6 @@ class RiotClient:
         """Fetch full match data for a match ID."""
         url = f"https://{self.match_host}/val/match/v1/matches/{match_id}"
         return await self._get(url)
-
-    # ------------------------------------------------------------------
-    # Rank / MMR  (Henrik Dev — no Riot key needed)
-    # ------------------------------------------------------------------
-
-    async def get_rank(self, game_name: str, tag_line: str) -> dict[str, Any]:
-        """
-        Fetch current rank + MMR history via Henrik Dev API.
-        https://docs.henrikdev.xyz/valorant/api-reference/mmr
-        """
-        headers = {}
-        if HENRIK_API_KEY:
-            headers["Authorization"] = HENRIK_API_KEY
-
-        url = (
-            f"https://api.henrikdev.xyz/valorant/v2/mmr"
-            f"/{self.region}/{game_name}/{tag_line}"
-        )
-        try:
-            resp = await self._client.get(url, headers=headers, timeout=10.0)
-            if resp.status_code >= 400:
-                # Henrik errors are non-fatal — return empty dict, rank shown as Unknown
-                return {}
-            return resp.json()
-        except httpx.TransportError:
-            return {}
 
     async def close(self):
         await self._client.aclose()

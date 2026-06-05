@@ -60,7 +60,7 @@ export default function TrackerPage() {
           )}
           {current?.rank_delta !== undefined && (
             <span className={`text-xs ${current.rank_delta >= 0 ? 'text-green-400' : 'text-[#FF4655]'}`}>
-              {current.rank_delta >= 0 ? '+' : ''}{current.rank_delta} MMR
+              {current.rank_delta >= 0 ? '+' : ''}{current.rank_delta} tiers
             </span>
           )}
         </div>
