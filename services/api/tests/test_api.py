@@ -164,3 +164,97 @@ def test_analysis_error_stored_on_exception(client):
         result = client.get(f"/api/v1/report/{report_id}").json()
         assert result["status"] == "error"
         assert "Riot API down" in (result["error"] or "")
+
+
+# ------------------------------------------------------------------ #
+# Region passthrough
+# ------------------------------------------------------------------ #
+
+def test_region_defaults_to_na(client):
+    """Omitting region defaults to 'na' and is passed to get_riot_report."""
+    captured = {}
+
+    async def fake_report(riot_id, region="na", match_count=20):
+        captured["region"] = region
+        return MOCK_RIOT_REPORT
+
+    with (
+        patch("services.riot.service.get_riot_report", new=fake_report),
+        patch("services.llm.coach.generate_coaching_report", new=AsyncMock(return_value=MOCK_COACHING)),
+    ):
+        resp = client.post("/api/v1/analyze", json={"riot_id": "TestPlayer#NA1"})
+        assert resp.status_code == 200
+        report_id = resp.json()["report_id"]
+        import time
+        for _ in range(10):
+            if client.get(f"/api/v1/report/{report_id}").json()["status"] in ("done", "error"):
+                break
+            time.sleep(0.1)
+    assert captured.get("region") == "na"
+
+
+def test_region_passed_through(client):
+    """Selected region is forwarded to get_riot_report, lowercased."""
+    captured = {}
+
+    async def fake_report(riot_id, region="na", match_count=20):
+        captured["region"] = region
+        return MOCK_RIOT_REPORT
+
+    with (
+        patch("services.riot.service.get_riot_report", new=fake_report),
+        patch("services.llm.coach.generate_coaching_report", new=AsyncMock(return_value=MOCK_COACHING)),
+    ):
+        resp = client.post("/api/v1/analyze", json={"riot_id": "TestPlayer#EUW", "region": "EU"})
+        assert resp.status_code == 200
+        report_id = resp.json()["report_id"]
+        import time
+        for _ in range(10):
+            if client.get(f"/api/v1/report/{report_id}").json()["status"] in ("done", "error"):
+                break
+            time.sleep(0.1)
+    assert captured.get("region") == "eu"
+
+
+def test_invalid_region_rejected(client):
+    resp = client.post("/api/v1/analyze", json={"riot_id": "Name#TAG", "region": "zz"})
+    assert resp.status_code == 422
+
+
+# ------------------------------------------------------------------ #
+# Friendly error mapping
+# ------------------------------------------------------------------ #
+
+@pytest.mark.parametrize("status,needle", [
+    (401, "invalid or expired"),
+    (403, "does not have Valorant access"),
+    (404, "Player not found"),
+    (429, "rate limit"),
+])
+def test_friendly_error_maps_riot_status(status, needle):
+    from services.api.main import _friendly_error
+    from services.riot.client import RiotAPIError
+    msg = _friendly_error(RiotAPIError(status, "raw"))
+    assert needle.lower() in msg.lower()
+
+
+def test_friendly_error_falls_back_to_message():
+    from services.api.main import _friendly_error
+    assert _friendly_error(ValueError("boom")) == "boom"
+
+
+def test_friendly_403_surfaced_in_report(client):
+    """A RiotAPIError 403 from the pipeline becomes the actionable VAL message."""
+    from services.riot.client import RiotAPIError
+    with patch("services.riot.service.get_riot_report",
+               new=AsyncMock(side_effect=RiotAPIError(403, "Forbidden"))):
+        resp = client.post("/api/v1/analyze", json={"riot_id": "TestPlayer#NA1"})
+        report_id = resp.json()["report_id"]
+        import time
+        for _ in range(10):
+            if client.get(f"/api/v1/report/{report_id}").json()["status"] in ("error", "done"):
+                break
+            time.sleep(0.1)
+        result = client.get(f"/api/v1/report/{report_id}").json()
+    assert result["status"] == "error"
+    assert "Valorant access" in (result["error"] or "")

@@ -4,7 +4,7 @@ const API_URL   = process.env.API_URL   || 'http://localhost:8000'
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
 
 export async function POST(request: Request) {
-  const { riotId } = await request.json()
+  const { riotId, region } = await request.json()
 
   if (MOCK_MODE) {
     await new Promise(r => setTimeout(r, 800))
@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const res = await fetch(`${API_URL}/api/v1/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ riot_id: riotId }),
+      body: JSON.stringify({ riot_id: riotId, region: (region || 'na').toLowerCase() }),
     })
 
     if (!res.ok) {

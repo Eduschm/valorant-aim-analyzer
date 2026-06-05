@@ -85,17 +85,36 @@ async def submit_analysis(body: AnalyzeRequest, background_tasks: BackgroundTask
     Runs the riot + LLM pipeline in the background and returns a report_id.
     Poll GET /api/v1/report/{report_id} until status == "done".
     """
-    logger.info("Received analysis request for %s", body.riot_id)
+    logger.info("Received analysis request for %s region=%s", body.riot_id, body.region)
     record = store.create(body.riot_id)
-    background_tasks.add_task(_run_analysis, record.id, body.riot_id)
-    logger.info("Queued background analysis report=%s riot_id=%s", record.id, body.riot_id)
+    background_tasks.add_task(_run_analysis, record.id, body.riot_id, body.region)
+    logger.info("Queued background analysis report=%s riot_id=%s region=%s", record.id, body.riot_id, body.region)
     return AnalyzeResponse(report_id=record.id, status="queued")
 
 
-async def _run_analysis(report_id: str, riot_id: str):
+def _friendly_error(exc: Exception) -> str:
+    """Turn a raw pipeline exception into a clear, actionable message for the UI."""
+    status = getattr(exc, "status", None)
+    if status == 401:
+        return "Riot API key is invalid or expired. Update RIOT_API_KEY in .env (dev keys expire every 24h)."
+    if status == 403:
+        return (
+            "Your Riot API key does not have Valorant access. Personal/dev keys only cover "
+            "account lookup. Apply for a production key with the Valorant product at "
+            "developer.riotgames.com to enable match analysis."
+        )
+    if status == 404:
+        return "Player not found. Double-check the Riot ID (Name#TAG) and region, then try again."
+    if status == 429:
+        return "Riot API rate limit hit. Wait a minute and try again."
+    msg = str(exc)
+    return msg or "Analysis failed due to an unexpected error."
+
+
+async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
     """Background task: fetch Riot data → generate coaching → store result."""
     store.update(report_id, status="processing")
-    logger.info("Background task start report=%s riot_id=%s", report_id, riot_id)
+    logger.info("Background task start report=%s riot_id=%s region=%s", report_id, riot_id, region)
     try:
         # Works whether run from repo root (services.riot) or services/api (sys.path set above)
         try:
@@ -106,7 +125,7 @@ async def _run_analysis(report_id: str, riot_id: str):
             from riot.service import get_riot_report   # type: ignore
             from llm.coach    import generate_coaching_report  # type: ignore
 
-        riot = await get_riot_report(riot_id)
+        riot = await get_riot_report(riot_id, region=region)
         coaching = await generate_coaching_report(riot)
 
         store.update(
@@ -118,7 +137,7 @@ async def _run_analysis(report_id: str, riot_id: str):
         logger.info("Background task complete report=%s riot_id=%s status=done", report_id, riot_id)
     except Exception as exc:
         logger.exception("Background task failed report=%s riot_id=%s", report_id, riot_id)
-        store.update(report_id, status="error", error=str(exc))
+        store.update(report_id, status="error", error=_friendly_error(exc))
 
 
 @app.get("/api/v1/report/{report_id}", response_model=ReportResponse)
