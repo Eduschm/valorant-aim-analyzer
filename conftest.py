@@ -8,7 +8,12 @@ import os
 # Ensure repo root is on path so all service imports work
 sys.path.insert(0, os.path.dirname(__file__))
 
-import numpy as np
+try:
+    import numpy as np
+    _numpy_available = True
+except ImportError:
+    _numpy_available = False
+
 import pytest
 
 from contracts.schemas import RiotReport, CoachingReport, CVReport, MatchStat
@@ -49,6 +54,8 @@ def mock_coaching():
 @pytest.fixture
 def sample_frame():
     """480×640 black BGR frame — safe for CV tests without model files."""
+    if not _numpy_available:
+        pytest.skip("numpy not installed")
     return np.zeros((480, 640, 3), dtype=np.uint8)
 
 

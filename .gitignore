@@ -67,3 +67,4 @@ coverage/
 .cache/
 .parcel-cache/
 .turbo/
+llm_costs.jsonl

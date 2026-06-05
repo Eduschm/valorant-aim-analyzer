@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 import anthropic
@@ -19,11 +20,14 @@ logger = get_logger("services.llm.coach")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 MODEL             = os.getenv("LLM_MODEL", "claude-haiku-4-5")
+COST_LOG_PATH     = os.getenv("LLM_COST_LOG", "llm_costs.jsonl")
 
 SYSTEM_PROMPT = (
     "You are an expert Valorant aim coach. Analyse the player statistics provided "
     "and identify the most impactful aiming mistakes. Be direct, specific, and actionable. "
     "Reference exact numbers from the data — never be vague. "
+    "When a skill bracket is specified, tailor all tips and advice to that bracket's "
+    "skill level — fundamentals for lower ranks, micro-optimisation for higher ranks. "
     "Respond ONLY with valid JSON matching the schema below. No prose outside the JSON.\n\n"
     "Schema:\n"
     '{\n'
@@ -34,13 +38,69 @@ SYSTEM_PROMPT = (
     '}'
 )
 
+# Approximate cost per million tokens (USD). Update when pricing changes.
+_MODEL_COST_PER_MTOK: dict[str, dict[str, float]] = {
+    "claude-haiku-4-5":              {"input": 0.80,  "output": 4.00},
+    "claude-haiku-4-5-20251001":     {"input": 0.80,  "output": 4.00},
+    "claude-sonnet-4-6":             {"input": 3.00,  "output": 15.00},
+    "claude-sonnet-4-6-20251101":    {"input": 3.00,  "output": 15.00},
+    "claude-opus-4-8":               {"input": 15.00, "output": 75.00},
+}
+
+# Rank bracket definitions used to tailor coaching to player skill level
+_RANK_BRACKETS: dict[str, dict[str, str]] = {
+    "Iron":     {"label": "Iron/Bronze",       "focus": "crosshair placement, economy basics, agent utility"},
+    "Bronze":   {"label": "Iron/Bronze",       "focus": "crosshair placement, economy basics, agent utility"},
+    "Silver":   {"label": "Silver/Gold",       "focus": "map control, trade discipline, peeking angles"},
+    "Gold":     {"label": "Silver/Gold",       "focus": "map control, trade discipline, peeking angles"},
+    "Platinum": {"label": "Platinum/Diamond",  "focus": "anti-strafe timing, spray transfers, rotations, info plays"},
+    "Diamond":  {"label": "Platinum/Diamond",  "focus": "anti-strafe timing, spray transfers, rotations, info plays"},
+    "Immortal": {"label": "Immortal/Radiant",  "focus": "mental game, opponent reads, meta adaptation"},
+    "Radiant":  {"label": "Immortal/Radiant",  "focus": "mental game, opponent reads, meta adaptation"},
+}
+_DEFAULT_BRACKET = {"label": "Unranked/Placement", "focus": "fundamentals, crosshair placement, economy"}
+
+
+def _get_rank_bracket(rank: str) -> dict[str, str]:
+    """Extract bracket info from rank string like 'Gold 2' or 'Immortal 1'."""
+    for key, bracket in _RANK_BRACKETS.items():
+        if rank.lower().startswith(key.lower()):
+            return bracket
+    return _DEFAULT_BRACKET
+
+
+def _compute_cost_usd(model: str, input_tokens: int, output_tokens: int) -> float:
+    rates = _MODEL_COST_PER_MTOK.get(model, {"input": 3.00, "output": 15.00})
+    return (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1_000_000
+
+
+def _log_cost(model: str, input_tokens: int, output_tokens: int, cost_usd: float) -> None:
+    entry = {
+        "ts": time.time(),
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cost_usd": round(cost_usd, 6),
+    }
+    try:
+        with open(COST_LOG_PATH, "a") as fh:
+            fh.write(json.dumps(entry) + "\n")
+    except OSError:
+        logger.warning("Could not write cost log to %s", COST_LOG_PATH)
+    logger.info(
+        "LLM cost: model=%s input=%d output=%d cost=$%.6f",
+        model, input_tokens, output_tokens, cost_usd,
+    )
+
 
 def build_prompt(riot: RiotReport, cv: CVReport | None = None) -> str:
-    n = len(riot.matches)
+    n       = len(riot.matches)
+    bracket = _get_rank_bracket(riot.current_rank)
 
     lines = [
         f"Player: {riot.game_name}#{riot.tag_line}",
         f"Rank: {riot.current_rank} (MMR change last match: {riot.rank_delta:+d})",
+        f"Skill bracket: {bracket['label']} — coaching focus for this tier: {bracket['focus']}",
         f"Last {n} matches:",
         f"  Win rate:          {riot.win_rate * 100:.0f}%",
         f"  Avg headshot %:    {riot.avg_headshot_pct:.1f}%",
@@ -109,19 +169,27 @@ async def generate_coaching_report(
         parsed = json.loads(raw)
     except json.JSONDecodeError:
         logger.warning("Claude response not valid JSON, retrying once")
-        # Retry once with an explicit nudge
         retry_msg = client.messages.create(
             model=MODEL,
             max_tokens=1024,
             system=SYSTEM_PROMPT,
             messages=[
-                {"role": "user",  "content": prompt},
+                {"role": "user",      "content": prompt},
                 {"role": "assistant", "content": raw},
-                {"role": "user",  "content": "Your response was not valid JSON. Reply with valid JSON only, no other text."},
+                {"role": "user",      "content": "Your response was not valid JSON. Reply with valid JSON only, no other text."},
             ],
         )
         raw = retry_msg.content[0].text.strip()
         parsed = json.loads(raw)
+        # Log cost for retry message
+        usage = retry_msg.usage
+        cost = _compute_cost_usd(MODEL, usage.input_tokens, usage.output_tokens)
+        _log_cost(MODEL, usage.input_tokens, usage.output_tokens, cost)
+    else:
+        # Log cost for successful first call
+        usage = message.usage
+        cost = _compute_cost_usd(MODEL, usage.input_tokens, usage.output_tokens)
+        _log_cost(MODEL, usage.input_tokens, usage.output_tokens, cost)
 
     return CoachingReport(
         summary=parsed["summary"],

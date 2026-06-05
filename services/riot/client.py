@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -13,6 +14,8 @@ load_dotenv()
 
 RIOT_API_KEY   = os.getenv("RIOT_API_KEY", "")
 HENRIK_API_KEY = os.getenv("HENRIK_API_KEY", "")
+
+MATCH_CACHE_TTL = 86_400  # 24h — match data never changes after a game ends
 
 REGIONS = {
     "na":    "americas",
@@ -48,14 +51,18 @@ class RiotClient:
     Use as an async context manager:
         async with RiotClient("na") as client:
             puuid = await client.get_puuid("Name", "TAG")
+
+    Pass redis_client to enable match caching (TTL 24h). When absent, every
+    call hits the Riot API directly. Non-fatal: Redis errors are swallowed.
     """
 
-    def __init__(self, region: str = "na"):
+    def __init__(self, region: str = "na", redis_client=None):
         self.region      = region.lower()
         self.routing     = REGIONS.get(self.region, "americas")
         self.match_host  = MATCH_HOSTS.get(self.region, "na.api.riotgames.com")
         self._headers    = {"X-Riot-Token": RIOT_API_KEY}
         self._client     = httpx.AsyncClient(timeout=15.0)
+        self._redis      = redis_client
 
     async def __aenter__(self):
         return self
@@ -110,9 +117,27 @@ class RiotClient:
         return [m["matchId"] for m in history[:count]]
 
     async def get_match(self, match_id: str) -> dict[str, Any]:
-        """Fetch full match data for a match ID."""
+        """Fetch full match data for a match ID. Returns cached result if available."""
+        cache_key = f"match:{match_id}"
+
+        if self._redis is not None:
+            try:
+                cached = await self._redis.get(cache_key)
+                if cached:
+                    return json.loads(cached)
+            except Exception:
+                pass  # Redis failure is non-fatal
+
         url = f"https://{self.match_host}/val/match/v1/matches/{match_id}"
-        return await self._get(url)
+        data = await self._get(url)
+
+        if self._redis is not None:
+            try:
+                await self._redis.setex(cache_key, MATCH_CACHE_TTL, json.dumps(data))
+            except Exception:
+                pass
+
+        return data
 
     # ------------------------------------------------------------------
     # Rank / MMR  (Henrik Dev — no Riot key needed)

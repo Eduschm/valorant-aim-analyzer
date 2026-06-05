@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from collections import Counter
 from contracts.schemas import MatchStat, RiotReport
+from .uuid_map import resolve_agent, resolve_weapon
 
 
 def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
@@ -44,9 +45,8 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
     team    = next((t for t in teams if t.get("teamId") == team_id), {})
     won     = team.get("won", False)
 
-    # Agent name: characterId is a UUID — use it directly for now
-    # (resolve to human names via Valorant content API if needed later)
-    agent = player.get("characterId", "Unknown")
+    # Resolve agent UUID → display name (e.g. "f94c3b30-..." → "Jett")
+    agent = resolve_agent(player.get("characterId", "Unknown"))
 
     # Weapon: not directly in player object; would need round-level data
     # Use the most-used weapon from round stats if available
@@ -82,7 +82,8 @@ def _extract_top_weapon(raw_match: dict, puuid: str) -> str:
                     weapon_kills[weapon_id] += 1
 
     if weapon_kills:
-        return weapon_kills.most_common(1)[0][0]
+        top_uuid = weapon_kills.most_common(1)[0][0]
+        return resolve_weapon(top_uuid)
     return "Unknown"
 
 
@@ -110,6 +111,7 @@ def build_riot_report(
     tag_line: str,
     matches: list[MatchStat],
     rank_data: dict,
+    region: str = "na",
 ) -> RiotReport:
     """Aggregate a list of MatchStat into a RiotReport summary."""
     if not matches:
@@ -125,6 +127,7 @@ def build_riot_report(
             top_agent="Unknown",
             top_weapon="Unknown",
             win_rate=0.0,
+            region=region,
         )
 
     avg_hs  = sum(m.headshot_pct for m in matches) / len(matches)
@@ -149,4 +152,5 @@ def build_riot_report(
         top_agent=top_agent,
         top_weapon=top_weapon,
         win_rate=round(wins / len(matches), 2),
+        region=region,
     )

@@ -60,14 +60,16 @@ def test_build_prompt_no_cv():
 
 
 @pytest.mark.asyncio
-async def test_generate_coaching_report_parses_valid_json():
+async def test_generate_coaching_report_parses_valid_json(tmp_path):
     mock_content = MagicMock()
     mock_content.text = VALID_RESPONSE
     mock_message = MagicMock()
     mock_message.content = [mock_content]
+    mock_message.usage   = MagicMock(input_tokens=100, output_tokens=200)
 
     with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
-         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
+         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"), \
+         patch("services.llm.coach.COST_LOG_PATH", str(tmp_path / "costs.jsonl")):
         instance = MockClient.return_value
         instance.messages.create.return_value = mock_message
         report = await generate_coaching_report(RIOT_REPORT)
@@ -80,14 +82,17 @@ async def test_generate_coaching_report_parses_valid_json():
 
 
 @pytest.mark.asyncio
-async def test_generate_coaching_report_retries_on_bad_json():
+async def test_generate_coaching_report_retries_on_bad_json(tmp_path):
     bad_response  = MagicMock(); bad_response.text  = "This is not JSON"
     good_response = MagicMock(); good_response.text = VALID_RESPONSE
     mock_message_bad  = MagicMock(); mock_message_bad.content  = [bad_response]
     mock_message_good = MagicMock(); mock_message_good.content = [good_response]
+    mock_message_bad.usage  = MagicMock(input_tokens=80, output_tokens=50)
+    mock_message_good.usage = MagicMock(input_tokens=90, output_tokens=200)
 
     with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
-         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
+         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"), \
+         patch("services.llm.coach.COST_LOG_PATH", str(tmp_path / "costs.jsonl")):
         instance = MockClient.return_value
         instance.messages.create.side_effect = [mock_message_bad, mock_message_good]
         report = await generate_coaching_report(RIOT_REPORT)
@@ -97,13 +102,15 @@ async def test_generate_coaching_report_retries_on_bad_json():
 
 
 @pytest.mark.asyncio
-async def test_generate_coaching_report_strips_markdown_fence():
+async def test_generate_coaching_report_strips_markdown_fence(tmp_path):
     fenced = f"```json\n{VALID_RESPONSE}\n```"
     mock_content = MagicMock(); mock_content.text = fenced
     mock_message = MagicMock(); mock_message.content = [mock_content]
+    mock_message.usage = MagicMock(input_tokens=100, output_tokens=200)
 
     with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
-         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
+         patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"), \
+         patch("services.llm.coach.COST_LOG_PATH", str(tmp_path / "costs.jsonl")):
         instance = MockClient.return_value
         instance.messages.create.return_value = mock_message
         report = await generate_coaching_report(RIOT_REPORT)
