@@ -42,20 +42,22 @@ export function AnalysisHistory() {
 
   if (rows.length === 0) {
     return (
-      <div className="border border-[#1F2130] bg-[#111318] p-10 text-center text-[#42495A] text-sm">
+      <div className="glass rounded-xl p-10 text-center text-sm text-[#42495A]">
         No analyses yet.{' '}
-        <Link href="/analysis/new" className="text-[#FF4655] hover:underline">Run your first one →</Link>
+        <Link href="/analysis/new" className="text-[#FF4655] hover:underline">
+          Run your first one
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="border border-[#1F2130] bg-[#111318] overflow-hidden">
+    <div className="glass overflow-hidden rounded-xl">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#1F2130]">
             {['Date', 'Riot ID', 'HS%', 'ADR', 'Status', ''].map(h => (
-              <th key={h} className="px-5 py-3 text-left text-[#42495A] text-xs uppercase tracking-widest font-medium">
+              <th key={h} className="px-5 py-3 text-left text-xs font-medium uppercase tracking-widest text-[#42495A]">
                 {h}
               </th>
             ))}
@@ -63,17 +65,17 @@ export function AnalysisHistory() {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-[#1F2130] last:border-0 hover:bg-[#181A22] transition">
+            <tr key={i} className="border-b border-[#1F2130] transition last:border-0 hover:bg-white/[0.02]">
               <td className="px-5 py-3 text-[#7A8496]">{timeAgo(row.createdAt)}</td>
-              <td className="px-5 py-3 text-[#F0F1F5] font-mono">{row.riotId}</td>
+              <td className="px-5 py-3 font-mono text-[#F0F1F5]">{row.riotId}</td>
               <td className="px-5 py-3 text-[#F0F1F5]">{row.stats.headshotPercent.toFixed(1)}%</td>
               <td className="px-5 py-3 text-[#F0F1F5]">{row.stats.adr.toFixed(0)}</td>
               <td className="px-5 py-3">
-                <span className="text-xs text-green-400 bg-green-400/20 px-2 py-0.5">Done</span>
+                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-400">Done</span>
               </td>
               <td className="px-5 py-3 text-right">
-                <Link href={`/analysis/${row.id}`} className="inline-flex items-center gap-1 text-[#FF4655] text-xs hover:underline">
-                  View <ArrowRight className="w-3 h-3" />
+                <Link href={`/analysis/${row.id}`} className="inline-flex items-center gap-1 text-xs text-[#FF4655] hover:underline">
+                  View <ArrowRight className="h-3 w-3" />
                 </Link>
               </td>
             </tr>

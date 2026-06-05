@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { clearAnalyses } from '@/lib/storage'
+import { PageTransition } from '@/components/ui/PageTransition'
+import { Reveal } from '@/components/ui/motion'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -47,15 +49,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8 max-w-xl space-y-6 fade-in">
+    <PageTransition className="mx-auto max-w-xl space-y-6 p-6 sm:p-8">
 
       <div>
-        <p className="text-xs uppercase tracking-widest text-[#42495A] mb-2">Settings</p>
+        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Settings</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">Account</h1>
       </div>
 
       {/* Account */}
-      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-4">
+      <Reveal className="glass space-y-4 rounded-xl p-6">
         <p className="text-xs uppercase tracking-widest text-[#42495A]">Account info</p>
         <div>
           <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Email</label>
@@ -79,10 +81,10 @@ export default function SettingsPage() {
           </div>
           {riotMsg && <p className="text-[#7A8496] text-xs mt-1">{riotMsg}</p>}
         </div>
-      </div>
+      </Reveal>
 
       {/* Usage */}
-      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-3">
+      <Reveal className="glass space-y-3 rounded-xl p-6" delay={0.05}>
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-widest text-[#42495A]">Plan</p>
           <span className="text-xs border border-[#1F2130] text-[#7A8496] px-2 py-0.5">Free tier</span>
@@ -90,12 +92,12 @@ export default function SettingsPage() {
         <p className="text-[#7A8496] text-sm">10 analyses / month · 3 min clip cap</p>
         <button disabled
           className="clip-corner-sm text-xs border border-[#1F2130] text-[#42495A] px-4 py-2 opacity-50 cursor-not-allowed">
-          Upgrade — coming soon
+          Upgrade, coming soon
         </button>
-      </div>
+      </Reveal>
 
       {/* Dev bypass */}
-      <div className="border border-[#1F2130] bg-[#111318] p-6 space-y-3">
+      <Reveal className="glass space-y-3 rounded-xl p-6" delay={0.1}>
         <p className="text-xs uppercase tracking-widest text-[#42495A]">Developer</p>
         <button onClick={handleDevBypass} disabled={devLoading}
           className="w-full text-left border border-[#1F2130] text-[#7A8496] text-sm py-2.5 px-4 hover:border-[#FF4655]/40 hover:text-[#F0F1F5] transition disabled:opacity-40">
@@ -103,16 +105,16 @@ export default function SettingsPage() {
         </button>
         {devMsg && <p className="text-[#7A8496] text-xs">{devMsg}</p>}
         <p className="text-[#42495A] text-xs">Requires API running at localhost:8000 with DEV_MODE=true</p>
-      </div>
+      </Reveal>
 
       {/* Sign out */}
-      <div className="border border-[#1F2130] bg-[#111318] p-6">
+      <Reveal className="glass rounded-xl p-6" delay={0.15}>
         <button onClick={handleSignOut}
           className="text-[#FF4655] text-sm hover:underline">
           Sign out and clear local data
         </button>
-      </div>
+      </Reveal>
 
-    </div>
+    </PageTransition>
   )
 }

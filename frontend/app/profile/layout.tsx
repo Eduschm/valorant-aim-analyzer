@@ -1,14 +1,5 @@
-import { Header } from '@/components/layout/Header'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { AppShell } from '@/components/layout/AppShell'
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex h-screen bg-[#0A0B0F] overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 overflow-auto">{children}</main>
-      </div>
-    </div>
-  )
+  return <AppShell>{children}</AppShell>
 }

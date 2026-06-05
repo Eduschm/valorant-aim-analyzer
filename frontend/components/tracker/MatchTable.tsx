@@ -46,7 +46,7 @@ export function MatchTable({ matches }: { matches: Match[] }) {
   ]
 
   return (
-    <div className="border border-[#1F2130] bg-[#111318] overflow-x-auto">
+    <div className="glass overflow-x-auto rounded-xl">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[#1F2130]">
@@ -62,7 +62,7 @@ export function MatchTable({ matches }: { matches: Match[] }) {
         </thead>
         <tbody>
           {sorted.map((m, i) => (
-            <tr key={i} className="border-b border-[#1F2130] last:border-0 hover:bg-[#181A22] transition">
+            <tr key={i} className="border-b border-[#1F2130] transition last:border-0 hover:bg-white/[0.02]">
               {cols.map(({ label, render }) => (
                 <td key={label} className="px-4 py-2.5 text-[#F0F1F5]">{render(m)}</td>
               ))}
