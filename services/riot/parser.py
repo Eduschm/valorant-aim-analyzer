@@ -110,6 +110,7 @@ def build_riot_report(
     tag_line: str,
     matches: list[MatchStat],
     rank_data: dict,
+    region: str = "na",
 ) -> RiotReport:
     """Aggregate a list of MatchStat into a RiotReport summary."""
     if not matches:
@@ -125,6 +126,7 @@ def build_riot_report(
             top_agent="Unknown",
             top_weapon="Unknown",
             win_rate=0.0,
+            region=region,
         )
 
     avg_hs  = sum(m.headshot_pct for m in matches) / len(matches)
@@ -149,4 +151,5 @@ def build_riot_report(
         top_agent=top_agent,
         top_weapon=top_weapon,
         win_rate=round(wins / len(matches), 2),
+        region=region,
     )

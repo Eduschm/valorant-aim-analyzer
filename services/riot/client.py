@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Any
 
@@ -56,11 +57,21 @@ class RiotClient:
         self.match_host  = MATCH_HOSTS.get(self.region, "na.api.riotgames.com")
         self._headers    = {"X-Riot-Token": RIOT_API_KEY}
         self._client     = httpx.AsyncClient(timeout=15.0)
+        self._redis      = None
 
     async def __aenter__(self):
+        redis_url = os.getenv("REDIS_URL", "")
+        if redis_url:
+            try:
+                import redis.asyncio as aioredis  # lazy import — optional dep
+                self._redis = aioredis.from_url(redis_url, decode_responses=False)
+            except ImportError:
+                pass
         return self
 
     async def __aexit__(self, *_):
+        if self._redis is not None:
+            await self._redis.aclose()
         await self.close()
 
     # ------------------------------------------------------------------
@@ -110,9 +121,17 @@ class RiotClient:
         return [m["matchId"] for m in history[:count]]
 
     async def get_match(self, match_id: str) -> dict[str, Any]:
-        """Fetch full match data for a match ID."""
-        url = f"https://{self.match_host}/val/match/v1/matches/{match_id}"
-        return await self._get(url)
+        """Fetch full match data for a match ID. Results cached in Redis for 24h when REDIS_URL is set."""
+        cache_key = f"match:{match_id}"
+        if self._redis is not None:
+            cached = await self._redis.get(cache_key)
+            if cached is not None:
+                return json.loads(cached)
+        url  = f"https://{self.match_host}/val/match/v1/matches/{match_id}"
+        data = await self._get(url)
+        if self._redis is not None:
+            await self._redis.set(cache_key, json.dumps(data), ex=86_400)
+        return data
 
     # ------------------------------------------------------------------
     # Rank / MMR  (Henrik Dev — no Riot key needed)

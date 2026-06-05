@@ -155,3 +155,50 @@ async def test_async_context_manager_closes_client():
         assert client._client is not None
     # after exit, close() was called — httpx.AsyncClient is closed
     assert client._client.is_closed
+
+
+# ------------------------------------------------------------------ #
+# Redis match caching
+# ------------------------------------------------------------------ #
+
+@pytest.mark.asyncio
+async def test_get_match_uses_cache_on_second_call():
+    """Second call for the same match ID must not hit the HTTP client."""
+    match_data = {"matchInfo": {"matchId": "xyz"}, "players": [], "teams": []}
+
+    mock_redis = MagicMock()
+    mock_redis.get    = AsyncMock(side_effect=[None, b'{"matchInfo": {"matchId": "xyz"}, "players": [], "teams": []}'])
+    mock_redis.set    = AsyncMock(return_value=True)
+    mock_redis.aclose = AsyncMock()
+
+    http_resp = _mock_response(200, match_data)
+
+    with patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=http_resp)) as mock_http, \
+         patch.dict(os.environ, {"REDIS_URL": "redis://localhost:6379"}), \
+         patch("redis.asyncio.from_url", return_value=mock_redis):
+        async with RiotClient("na") as client:
+            result1 = await client.get_match("xyz")  # miss → HTTP
+            result2 = await client.get_match("xyz")  # hit  → no HTTP
+
+    assert result1["matchInfo"]["matchId"] == "xyz"
+    assert result2["matchInfo"]["matchId"] == "xyz"
+    # HTTP was called exactly once (cache hit on second call)
+    assert mock_http.call_count == 1
+    mock_redis.set.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_match_no_redis_when_url_absent():
+    """Without REDIS_URL, RiotClient._redis stays None and caching is skipped."""
+    match_data = {"matchInfo": {"matchId": "abc"}}
+    resp = _mock_response(200, match_data)
+
+    with patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=resp)), \
+         patch.dict(os.environ, {}, clear=False):
+        # Ensure REDIS_URL is not set
+        os.environ.pop("REDIS_URL", None)
+        async with RiotClient("na") as client:
+            assert client._redis is None
+            result = await client.get_match("abc")
+
+    assert result["matchInfo"]["matchId"] == "abc"

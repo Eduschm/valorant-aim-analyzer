@@ -64,6 +64,7 @@ class RiotReport:
     top_agent:        str
     top_weapon:       str
     win_rate:         float
+    region:           str = "na"  # resolved region (auto-detected if not passed explicitly)
 
 
 # ---------- LLM service output ----------
