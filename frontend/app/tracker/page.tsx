@@ -10,6 +10,7 @@ import { getAllAnalyses, getAnalyses, StoredAnalysis } from '@/lib/storage'
 import { MOCK_REPORT } from '@/lib/mock/analysis'
 import { PageTransition } from '@/components/ui/PageTransition'
 import { Reveal } from '@/components/ui/motion'
+import { RankBadge } from '@/components/ui/RankBadge'
 
 function TrackerContent() {
   const params  = useSearchParams()
@@ -53,21 +54,26 @@ function TrackerContent() {
       {/* Header */}
       <div>
         <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Tracker</p>
-        <div className="flex flex-wrap items-baseline gap-3">
-          <h1 className="font-display text-3xl font-bold tracking-tight">
-            {current?.game_name ?? '-'}
-            <span className="text-xl text-[#42495A]">#{current?.tag_line}</span>
-          </h1>
+        <div className="flex flex-wrap items-center gap-4">
           {current?.current_rank && (
-            <span className="rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-3 py-0.5 text-sm font-semibold text-[#FF4655]">
-              {current.current_rank}
-            </span>
+            <RankBadge rank={current.current_rank} size={52} promoted={(current.rank_delta ?? 0) > 0} />
           )}
-          {current?.rank_delta !== undefined && (
-            <span className={`text-xs ${current.rank_delta >= 0 ? 'text-emerald-400' : 'text-[#FF4655]'}`}>
-              {current.rank_delta >= 0 ? '+' : ''}{current.rank_delta} tiers
-            </span>
-          )}
+          <div className="flex flex-wrap items-baseline gap-3">
+            <h1 className="font-display text-3xl font-bold tracking-tight">
+              {current?.game_name ?? '-'}
+              <span className="text-xl text-[#42495A]">#{current?.tag_line}</span>
+            </h1>
+            {current?.current_rank && (
+              <span className="rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-3 py-0.5 text-sm font-semibold text-[#FF4655]">
+                {current.current_rank}
+              </span>
+            )}
+            {current?.rank_delta !== undefined && (
+              <span className={`text-xs ${current.rank_delta >= 0 ? 'text-emerald-400' : 'text-[#FF4655]'}`}>
+                {current.rank_delta >= 0 ? '+' : ''}{current.rank_delta} tiers
+              </span>
+            )}
+          </div>
         </div>
         {!riotId && (
           <p className="mt-1 text-xs text-[#42495A]">

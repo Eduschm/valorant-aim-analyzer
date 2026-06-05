@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
+import { AgentIcon } from '@/components/ui/AgentIcon'
 
 type Match = {
   match_id: string
@@ -38,7 +39,12 @@ export function MatchTable({ matches }: { matches: Match[] }) {
 
   const cols: { label: string; key?: SortKey; render: (m: Match) => React.ReactNode }[] = [
     { label: '',        render: m => <span className={`font-bold text-xs ${m.won ? 'text-green-400' : 'text-[#FF4655]'}`}>{m.won ? 'W' : 'L'}</span> },
-    { label: 'Agent',   render: m => <span className="text-[#7A8496] font-mono text-xs truncate max-w-20">{m.agent.slice(0, 8)}</span> },
+    { label: 'Agent',   render: m => (
+      <span className="flex items-center gap-2 text-[#7A8496] text-xs">
+        <AgentIcon name={m.agent} size={22} />
+        <span className="truncate max-w-20">{m.agent}</span>
+      </span>
+    ) },
     { label: 'K/D/A',   render: m => <span className="font-mono">{m.kills}/{m.deaths}/{m.assists}</span> },
     { label: 'HS%',     key: 'headshot_pct', render: m => `${m.headshot_pct.toFixed(0)}%` },
     { label: 'ADR',     key: 'adr',          render: m => m.adr.toFixed(0) },
