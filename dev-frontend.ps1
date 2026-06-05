@@ -1,8 +1,14 @@
-# Development startup script for Valorant Aim Analyzer frontend
-# Adds Node.js to PATH and starts the Next.js development server
-
+# Development startup script — Frontend
+$root  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $env:PATH = "C:\Program Files\nodejs;$env:PATH"
-Set-Location "$(Split-Path -Parent $MyInvocation.MyCommand.Path)\frontend"
 
-Write-Host "Starting frontend dev server on port 3000..." -ForegroundColor Green
+Set-Location "$root\frontend"
+
+# Clear stale Next.js cache (prevents old pages showing up)
+if (Test-Path ".next") {
+    Remove-Item -Recurse -Force ".next"
+    Write-Host "Cleared .next cache" -ForegroundColor Yellow
+}
+
+Write-Host "Starting frontend on http://localhost:3000 ..." -ForegroundColor Green
 npm run dev

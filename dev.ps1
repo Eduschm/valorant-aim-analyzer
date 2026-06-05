@@ -1,8 +1,13 @@
-# Development startup script for Valorant Aim Analyzer
-# Adds Node.js to PATH and starts the backend API server
+# Development startup script — Backend API
+$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$python = "$root\.venv\Scripts\python.exe"
 
-$env:PATH = "C:\Program Files\nodejs;$env:PATH"
-Set-Location "$(Split-Path -Parent $MyInvocation.MyCommand.Path)\services\api"
+if (-not (Test-Path $python)) {
+    Write-Host "ERROR: venv not found at $python" -ForegroundColor Red
+    Write-Host "Run: python -m venv .venv && .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
+    exit 1
+}
 
-Write-Host "Starting API server on port 8000..." -ForegroundColor Green
-python -m uvicorn main:app --reload --port 8000
+Set-Location "$root\services\api"
+Write-Host "Starting API on http://localhost:8000 ..." -ForegroundColor Green
+& $python -m uvicorn main:app --reload --port 8000
