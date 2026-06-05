@@ -7,9 +7,16 @@ const VALORANT_COLORS = ['#FF4655', '#FF8A93', '#F0F1F5', '#FFD166']
 
 /** Fire a one-shot confetti burst. `intense` adds extra cannons for rank-ups. */
 export function fireConfetti(intense = false) {
-  if (typeof window === 'undefined') return
+  if (typeof window === 'undefined' || typeof document === 'undefined') return
   const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
   if (prefersReduced) return
+  // Skip in environments without a real 2D canvas (e.g. jsdom in tests),
+  // where canvas-confetti's animation loop would throw on a null context.
+  try {
+    if (!document.createElement('canvas').getContext('2d')) return
+  } catch {
+    return
+  }
 
   const base = { colors: VALORANT_COLORS, disableForReducedMotion: true }
 
