@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& .claude\\hooks\\auto_commit.ps1",
+            "timeout": 120,
+            "statusMessage": "Running tests and committing..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "& .claude\\hooks\\check_tests.ps1",
+            "timeout": 10,
+            "statusMessage": "Checking for test file..."
+          }
+        ]
+      }
+    ]
+  }
+}
