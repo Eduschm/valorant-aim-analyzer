@@ -95,18 +95,35 @@ async def submit_analysis(body: AnalyzeRequest, background_tasks: BackgroundTask
 def _friendly_error(exc: Exception) -> str:
     """Turn a raw pipeline exception into a clear, actionable message for the UI."""
     status = getattr(exc, "status", None)
-    if status == 401:
-        return "Riot API key is invalid or expired. Update RIOT_API_KEY in .env (dev keys expire every 24h)."
-    if status == 403:
-        return (
-            "Your Riot API key does not have Valorant access. Personal/dev keys only cover "
-            "account lookup. Apply for a production key with the Valorant product at "
-            "developer.riotgames.com to enable match analysis."
-        )
+    is_henrik = type(exc).__name__ == "HenrikAPIError"
+
     if status == 404:
         return "Player not found. Double-check the Riot ID (Name#TAG) and region, then try again."
     if status == 429:
-        return "Riot API rate limit hit. Wait a minute and try again."
+        provider = "Henrik" if is_henrik else "Riot"
+        return f"{provider} API rate limit hit. Wait a minute and try again."
+
+    if is_henrik:
+        if status == 401:
+            return (
+                "Henrik API key is missing. Add HENRIK_API_KEY to .env — get a free key from "
+                "the HenrikDev Discord (https://discord.com/invite/X3GaVkX2YN, #get-a-key)."
+            )
+        if status == 403:
+            return (
+                "Henrik API key is invalid. Replace HENRIK_API_KEY in .env with a valid key "
+                "from the HenrikDev Discord (#get-a-key)."
+            )
+    else:
+        if status == 401:
+            return "Riot API key is invalid or expired. Update RIOT_API_KEY in .env (dev keys expire every 24h)."
+        if status == 403:
+            return (
+                "Your Riot API key does not have Valorant access. Personal/dev keys only cover "
+                "account lookup. Set HENRIK_API_KEY to use the Henrik provider, or apply for a "
+                "production Riot key with the Valorant product at developer.riotgames.com."
+            )
+
     msg = str(exc)
     return msg or "Analysis failed due to an unexpected error."
 
