@@ -49,6 +49,7 @@ class MatchStat:
     headshot_pct: float     # 0-100
     adr:          float     # avg damage per round
     won:          bool
+    competitive_tier: int = 0   # Riot competitiveTier (0 = Unranked); used to derive rank
 
 
 @dataclass

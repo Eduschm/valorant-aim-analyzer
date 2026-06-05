@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 from contracts.schemas import RiotReport
 from services.logging import configure_logging, get_logger
 from .client import RiotClient, RiotAPIError
-from .parser import parse_match, parse_rank, build_riot_report
+from .parser import parse_match, derive_rank, build_riot_report
 
 configure_logging()
 logger = get_logger("services.riot.service")
@@ -45,9 +45,8 @@ async def get_riot_report(riot_id: str, region: str = "na", match_count: int = 2
                 logger.warning("Skipping match %s due to RiotAPIError", mid)
                 continue
 
-        # 4. Fetch rank (non-fatal — Henrik API is unofficial)
-        raw_rank  = await client.get_rank(game_name, tag_line)
-        rank_data = parse_rank(raw_rank)
+    # 4. Derive rank from Riot match data (competitiveTier)
+    rank_data = derive_rank(matches)
 
     report = build_riot_report(puuid, game_name, tag_line, matches, rank_data)
     logger.info("Built RiotReport for %s with %d matches", riot_id, len(matches))

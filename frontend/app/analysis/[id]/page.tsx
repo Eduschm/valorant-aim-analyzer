@@ -160,7 +160,7 @@ export default function AnalysisReportPage() {
               <span>{riot?.matches?.length || 0} matches</span>
               <span>·</span>
               <span className={riot?.rank_delta >= 0 ? 'text-green-400' : 'text-[#FF4655]'}>
-                {riot?.rank_delta >= 0 ? '+' : ''}{riot?.rank_delta} MMR
+                {riot?.rank_delta >= 0 ? '+' : ''}{riot?.rank_delta} tiers
               </span>
             </div>
           </div>

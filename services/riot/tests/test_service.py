@@ -16,6 +16,7 @@ MOCK_MATCH = {
     "matchInfo": {"matchId": "m1", "numberOfRounds": 20},
     "players": [{
         "puuid": PUUID, "teamId": "Red", "characterId": "jett",
+        "competitiveTier": 13,
         "stats": {"kills": 18, "deaths": 12, "assists": 3,
                   "headshots": 10, "bodyshots": 25, "legshots": 5, "score": 3200},
     }],
@@ -23,8 +24,9 @@ MOCK_MATCH = {
     "roundResults": [],
 }
 
-MOCK_RANK = {
-    "data": {"current_data": {"currenttierpatched": "Gold 2", "mmr_change_to_last_game": 15}}
+MOCK_MATCH_UNRANKED = {
+    **MOCK_MATCH,
+    "players": [{k: v for k, v in MOCK_MATCH["players"][0].items() if k != "competitiveTier"}],
 }
 
 
@@ -35,7 +37,6 @@ async def test_get_riot_report_full_pipeline():
         inst.get_puuid      = AsyncMock(return_value=PUUID)
         inst.get_match_ids  = AsyncMock(return_value=["m1", "m2"])
         inst.get_match      = AsyncMock(return_value=MOCK_MATCH)
-        inst.get_rank       = AsyncMock(return_value=MOCK_RANK)
 
         from services.riot.service import get_riot_report
         report = await get_riot_report("TestPlayer#NA1")
@@ -44,8 +45,9 @@ async def test_get_riot_report_full_pipeline():
     assert report.game_name == "TestPlayer"
     assert report.tag_line  == "NA1"
     assert report.puuid     == PUUID
+    # rank derived from Riot competitiveTier (13 -> Gold 2); same tier both matches -> delta 0
     assert report.current_rank == "Gold 2"
-    assert report.rank_delta   == 15
+    assert report.rank_delta   == 0
     assert len(report.matches) == 2   # both matches parsed
 
 
@@ -69,7 +71,6 @@ async def test_get_riot_report_skips_failed_matches():
             RiotAPIError(404, "not found"),
             MOCK_MATCH,
         ])
-        inst.get_rank = AsyncMock(return_value=MOCK_RANK)
 
         from services.riot.service import get_riot_report
         report = await get_riot_report("TestPlayer#NA1")
@@ -78,14 +79,13 @@ async def test_get_riot_report_skips_failed_matches():
 
 
 @pytest.mark.asyncio
-async def test_get_riot_report_rank_non_fatal():
-    """get_rank returning {} → rank shown as Unranked, report still succeeds."""
+async def test_get_riot_report_rank_unranked_without_tier():
+    """Matches without competitiveTier → rank shown as Unranked, report still succeeds."""
     with patch("services.riot.service.RiotClient") as MockClient:
         inst = MockClient.return_value.__aenter__.return_value
         inst.get_puuid     = AsyncMock(return_value=PUUID)
         inst.get_match_ids = AsyncMock(return_value=["m1"])
-        inst.get_match     = AsyncMock(return_value=MOCK_MATCH)
-        inst.get_rank      = AsyncMock(return_value={})
+        inst.get_match     = AsyncMock(return_value=MOCK_MATCH_UNRANKED)
 
         from services.riot.service import get_riot_report
         report = await get_riot_report("TestPlayer#NA1")

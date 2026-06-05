@@ -91,40 +91,6 @@ async def test_get_match_returns_dict():
 
 
 # ------------------------------------------------------------------ #
-# get_rank (Henrik — non-fatal)
-# ------------------------------------------------------------------ #
-
-@pytest.mark.asyncio
-async def test_get_rank_success():
-    rank_data = {"data": {"current_data": {"currenttierpatched": "Gold 2", "mmr_change_to_last_game": 15}}}
-    resp = MagicMock(spec=httpx.Response)
-    resp.status_code = 200
-    resp.json.return_value = rank_data
-    with patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=resp)):
-        async with RiotClient("na") as client:
-            result = await client.get_rank("TestPlayer", "NA1")
-    assert result == rank_data
-
-
-@pytest.mark.asyncio
-async def test_get_rank_non_fatal_on_500():
-    resp = MagicMock(spec=httpx.Response)
-    resp.status_code = 500
-    with patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=resp)):
-        async with RiotClient("na") as client:
-            result = await client.get_rank("TestPlayer", "NA1")
-    assert result == {}
-
-
-@pytest.mark.asyncio
-async def test_get_rank_non_fatal_on_transport_error():
-    with patch.object(httpx.AsyncClient, "get", new=AsyncMock(side_effect=httpx.TransportError("conn"))):
-        async with RiotClient("na") as client:
-            result = await client.get_rank("TestPlayer", "NA1")
-    assert result == {}
-
-
-# ------------------------------------------------------------------ #
 # Region routing
 # ------------------------------------------------------------------ #
 
