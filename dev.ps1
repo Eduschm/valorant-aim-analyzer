@@ -10,4 +10,6 @@ if (-not (Test-Path $python)) {
 
 Set-Location "$root\services\api"
 Write-Host "Starting API on http://localhost:8000 ..." -ForegroundColor Green
-& $python -m uvicorn main:app --reload --port 8000
+
+# --reload-dir limits watchfiles to only source dirs, avoiding venv/data restart loops
+& $python -m uvicorn main:app --reload --reload-dir . --reload-dir "$root\contracts" --reload-dir "$root\services\riot" --reload-dir "$root\services\llm" --port 8000
