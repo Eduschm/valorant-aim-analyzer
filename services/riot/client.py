@@ -68,8 +68,8 @@ class RiotClient:
     # ------------------------------------------------------------------
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
+        stop=stop_after_attempt(2),          # 2 attempts total (1 retry)
+        wait=wait_exponential(multiplier=1, min=1, max=3),   # max 3s between retries
         retry=retry_if_exception_type(httpx.TransportError),
         reraise=True,
     )

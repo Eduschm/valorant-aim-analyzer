@@ -16,8 +16,8 @@ interface Report {
   error:       string | null
 }
 
-// Poll interval in ms
-const POLL_MS = 3000
+const POLL_MS     = 3000
+const POLL_TIMEOUT = 90_000  // give up after 90s
 
 const MISTAKE_COLORS: Record<string, string> = {
   overshoot:             'bg-red-500',
@@ -47,10 +47,16 @@ export default function AnalysisReportPage() {
   // Poll until done
   useEffect(() => {
     let cancelled = false
+    const startedAt = Date.now()
 
     const poll = async () => {
+      // Hard timeout — surface an error instead of spinning forever
+      if (Date.now() - startedAt > POLL_TIMEOUT) {
+        if (!cancelled) setError('Analysis timed out. Check that RIOT_API_KEY and ANTHROPIC_API_KEY are set in .env, then try again.')
+        return
+      }
+
       try {
-        logger.debug('Polling report', id)
         const res = await fetch(`/api/analysis/${id}`)
         if (!res.ok) throw new Error(`${res.status}`)
         const json = await res.json()
