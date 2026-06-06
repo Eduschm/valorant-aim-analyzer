@@ -67,3 +67,7 @@ coverage/
 .cache/
 .parcel-cache/
 .turbo/
+
+# Runtime artifacts
+llm_costs.jsonl
+*.jsonl
