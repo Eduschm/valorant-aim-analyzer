@@ -20,10 +20,13 @@ import datetime
 import secrets
 import hashlib
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Response
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from services.logging import configure_logging, get_logger
 
@@ -50,7 +53,11 @@ def _make_token(user_id: str) -> str:
     raw = f"{user_id}:{secrets.token_hex(32)}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
+limiter = Limiter(key_func=get_remote_address, headers_enabled=True)
+
 app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 logger.info("Starting API app: DEV_MODE=%s", DEV_MODE)
 
 app.add_middleware(
@@ -79,7 +86,8 @@ async def health():
 # ------------------------------------------------------------------
 
 @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
-async def submit_analysis(body: AnalyzeRequest, background_tasks: BackgroundTasks):
+@limiter.limit("10/minute")
+async def submit_analysis(request: Request, response: Response, body: AnalyzeRequest, background_tasks: BackgroundTasks):
     """
     Submit a Riot ID for analysis.
     Runs the riot + LLM pipeline in the background and returns a report_id.

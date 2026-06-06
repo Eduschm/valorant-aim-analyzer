@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from collections import Counter
 from contracts.schemas import MatchStat, RiotReport
+from .uuid_map import resolve_agent, resolve_weapon
 
 
 # Riot competitiveTier int -> human-readable rank name.
@@ -55,26 +56,29 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
     total_shots = headshots + bodyshots + legshots
     hs_pct = (headshots / total_shots * 100) if total_shots > 0 else 0.0
 
-    # ADR approximation: combat score / rounds played
-    # Riot doesn't expose damage directly in match-v1
-    num_rounds = info.get("numberOfRounds", max(info.get("roundsPlayed", 1), 1))
-    adr = score / num_rounds if num_rounds > 0 else 0.0
+    # Try real ADR from round-level damage data; fall back to score/rounds approximation.
+    real_adr = _extract_real_adr(raw_match, puuid)
+    if real_adr is not None:
+        adr = real_adr
+        adr_is_estimated = False
+    else:
+        num_rounds = info.get("numberOfRounds", max(info.get("roundsPlayed", 1), 1))
+        adr = score / num_rounds if num_rounds > 0 else 0.0
+        adr_is_estimated = True
 
     # Determine if this player's team won
     team_id = player.get("teamId", "")
     team    = next((t for t in teams if t.get("teamId") == team_id), {})
     won     = team.get("won", False)
 
-    # Agent name: characterId is a UUID — use it directly for now
-    # (resolve to human names via Valorant content API if needed later)
-    agent = player.get("characterId", "Unknown")
+    # Resolve agent UUID → human name; falls back to UUID if not in the map.
+    agent = resolve_agent(player.get("characterId", "Unknown"))
 
     # Riot exposes the player's rank for the match via competitiveTier
     competitive_tier = int(player.get("competitiveTier", 0) or 0)
 
-    # Weapon: not directly in player object; would need round-level data
-    # Use the most-used weapon from round stats if available
-    weapon = _extract_top_weapon(raw_match, puuid)
+    # Weapon: resolve UUID → name from round kill data.
+    weapon = resolve_weapon(_extract_top_weapon_uuid(raw_match, puuid))
 
     match_id = raw_match.get("matchInfo", {}).get("matchId", "")
 
@@ -89,11 +93,12 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
         adr=round(adr, 1),
         won=won,
         competitive_tier=competitive_tier,
+        adr_is_estimated=adr_is_estimated,
     )
 
 
-def _extract_top_weapon(raw_match: dict, puuid: str) -> str:
-    """Best-effort weapon extraction from round results."""
+def _extract_top_weapon_uuid(raw_match: dict, puuid: str) -> str:
+    """Best-effort weapon UUID extraction from round results."""
     rounds = raw_match.get("roundResults", [])
     weapon_kills: Counter = Counter()
 
@@ -109,6 +114,38 @@ def _extract_top_weapon(raw_match: dict, puuid: str) -> str:
     if weapon_kills:
         return weapon_kills.most_common(1)[0][0]
     return "Unknown"
+
+
+def _extract_real_adr(raw_match: dict, puuid: str) -> float | None:
+    """
+    Compute real ADR from roundResults damage arrays.
+    Returns None when data is absent, signalling the caller to fall back to
+    the score/rounds approximation.
+    """
+    rounds = raw_match.get("roundResults", [])
+    if not rounds:
+        return None
+
+    num_rounds = raw_match.get("matchInfo", {}).get("numberOfRounds") or len(rounds)
+    if num_rounds == 0:
+        return None
+
+    total_damage = 0
+    found_any = False
+    for rnd in rounds:
+        for ps in rnd.get("playerStats", []):
+            if ps.get("puuid") != puuid:
+                continue
+            for dmg in ps.get("damage", []):
+                val = dmg.get("damage", 0)
+                if val > 0:
+                    found_any = True
+                total_damage += val
+
+    if not found_any:
+        return None  # Riot API stripped damage data for this match
+
+    return round(total_damage / num_rounds, 1)
 
 
 def derive_rank(matches: list[MatchStat]) -> dict:
@@ -173,4 +210,5 @@ def build_riot_report(
         top_agent=top_agent,
         top_weapon=top_weapon,
         win_rate=round(wins / len(matches), 2),
+        adr_is_estimated=any(m.adr_is_estimated for m in matches),
     )

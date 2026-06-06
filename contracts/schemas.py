@@ -50,6 +50,7 @@ class MatchStat:
     adr:          float     # avg damage per round
     won:          bool
     competitive_tier: int = 0   # Riot competitiveTier (0 = Unranked); used to derive rank
+    adr_is_estimated: bool = False  # True when Riot roundResults lacks damage data
 
 
 @dataclass
@@ -65,6 +66,7 @@ class RiotReport:
     top_agent:        str
     top_weapon:       str
     win_rate:         float
+    adr_is_estimated: bool = False  # True when any match used score/rounds approximation
 
 
 # ---------- LLM service output ----------
