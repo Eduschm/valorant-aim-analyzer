@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 
 import json
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch
 from contracts.schemas import RiotReport, MatchStat, CoachingReport
 from services.llm.coach import build_prompt, generate_coaching_report
 
@@ -66,10 +66,10 @@ async def test_generate_coaching_report_parses_valid_json():
     mock_message = MagicMock()
     mock_message.content = [mock_content]
 
-    with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
+    with patch("services.llm.coach.anthropic.AsyncAnthropic") as MockClient, \
          patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
         instance = MockClient.return_value
-        instance.messages.create.return_value = mock_message
+        instance.messages.create = AsyncMock(return_value=mock_message)
         report = await generate_coaching_report(RIOT_REPORT)
 
     assert isinstance(report, CoachingReport)
@@ -86,10 +86,10 @@ async def test_generate_coaching_report_retries_on_bad_json():
     mock_message_bad  = MagicMock(); mock_message_bad.content  = [bad_response]
     mock_message_good = MagicMock(); mock_message_good.content = [good_response]
 
-    with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
+    with patch("services.llm.coach.anthropic.AsyncAnthropic") as MockClient, \
          patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
         instance = MockClient.return_value
-        instance.messages.create.side_effect = [mock_message_bad, mock_message_good]
+        instance.messages.create = AsyncMock(side_effect=[mock_message_bad, mock_message_good])
         report = await generate_coaching_report(RIOT_REPORT)
 
     assert instance.messages.create.call_count == 2
@@ -102,10 +102,10 @@ async def test_generate_coaching_report_strips_markdown_fence():
     mock_content = MagicMock(); mock_content.text = fenced
     mock_message = MagicMock(); mock_message.content = [mock_content]
 
-    with patch("services.llm.coach.anthropic.Anthropic") as MockClient, \
+    with patch("services.llm.coach.anthropic.AsyncAnthropic") as MockClient, \
          patch("services.llm.coach.ANTHROPIC_API_KEY", "test-key"):
         instance = MockClient.return_value
-        instance.messages.create.return_value = mock_message
+        instance.messages.create = AsyncMock(return_value=mock_message)
         report = await generate_coaching_report(RIOT_REPORT)
 
     assert isinstance(report, CoachingReport)

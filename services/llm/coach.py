@@ -86,11 +86,11 @@ async def generate_coaching_report(
         raise ValueError("ANTHROPIC_API_KEY is not set. Add it to your .env file.")
 
     logger.info("Generating coaching report for %s#%s using model=%s", riot.game_name, riot.tag_line, MODEL)
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    client = anthropic.AsyncAnthropic(api_key=ANTHROPIC_API_KEY)
     prompt = build_prompt(riot, cv)
     logger.debug("Built coaching prompt length=%d", len(prompt))
 
-    message = client.messages.create(
+    message = await client.messages.create(
         model=MODEL,
         max_tokens=1024,
         system=SYSTEM_PROMPT,
@@ -110,7 +110,7 @@ async def generate_coaching_report(
     except json.JSONDecodeError:
         logger.warning("Claude response not valid JSON, retrying once")
         # Retry once with an explicit nudge
-        retry_msg = client.messages.create(
+        retry_msg = await client.messages.create(
             model=MODEL,
             max_tokens=1024,
             system=SYSTEM_PROMPT,

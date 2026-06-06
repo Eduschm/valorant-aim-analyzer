@@ -11,4 +11,4 @@ if (Test-Path ".next") {
 }
 
 Write-Host "Starting frontend on http://localhost:3000 ..." -ForegroundColor Green
-npm run dev
+& "C:\Program Files\nodejs\npm.cmd" run dev
