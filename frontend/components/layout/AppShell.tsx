@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#07080C]">
+    <div className="flex h-screen overflow-hidden bg-[#070B18]">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex w-60 flex-col flex-shrink-0 glass border-r border-[#1F2130]">
         <div className="px-5 py-5 border-b border-[#1F2130]">
@@ -155,7 +155,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Main column */}
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex h-14 flex-shrink-0 items-center gap-3 border-b border-[#1F2130] bg-[#0A0B0F]/80 px-4 backdrop-blur sm:px-6">
+        <header className="flex h-14 flex-shrink-0 items-center gap-3 border-b border-[#1F2130] bg-[#0A0E20]/80 px-4 backdrop-blur sm:px-6">
           <button
             onClick={() => setMobileOpen(true)}
             className="p-1.5 text-[#7A8496] hover:text-[#F0F1F5] lg:hidden"

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Image from 'next/image'
 import { useState } from 'react'
@@ -31,7 +31,7 @@ export function AgentIcon({
 
   return (
     <span
-      className={`relative inline-block overflow-hidden rounded-full bg-[#0A0B0F] ring-1 ring-white/10 ${className}`}
+      className={`relative inline-block overflow-hidden rounded-full bg-[#0A0E20] ring-1 ring-white/10 ${className}`}
       style={{ width: size, height: size }}
     >
       <Image

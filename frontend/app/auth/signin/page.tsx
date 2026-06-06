@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -54,7 +54,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07080C] px-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070B18] px-4">
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
       <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
 
@@ -110,7 +110,7 @@ export default function SignInPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-3 pl-10 pr-4 text-sm text-[#F0F1F5] placeholder-[#42495A] transition focus:border-val-accent focus:outline-none"
+                    className="w-full rounded-lg border border-[#1F2130] bg-[#0A0E20] py-3 pl-10 pr-4 text-sm text-[#F0F1F5] placeholder-[#42495A] transition focus:border-val-accent focus:outline-none"
                   />
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function SignInPage() {
             <button
               onClick={handleDevBypass}
               disabled={devLoading}
-              className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-2.5 text-sm text-[#7A8496] transition hover:border-val-accent/50 hover:text-[#F0F1F5] disabled:opacity-40"
+              className="w-full rounded-lg border border-[#1F2130] bg-[#0A0E20] py-2.5 text-sm text-[#7A8496] transition hover:border-val-accent/50 hover:text-[#F0F1F5] disabled:opacity-40"
             >
               {devLoading ? 'Creating session...' : 'Skip auth, go straight to analysis'}
             </button>

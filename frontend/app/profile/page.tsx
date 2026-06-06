@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -94,7 +94,7 @@ export default function ProfilePage() {
           <p className="text-xs uppercase tracking-widest text-[#42495A]">Progress since first analysis</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {progress.map(({ label, current, prev, format }) => (
-              <div key={label} className="rounded-lg border border-[#1F2130] bg-[#0B0C12] p-4">
+              <div key={label} className="rounded-lg border border-[#1F2130] bg-[#0C1028] p-4">
                 <p className="mb-2 text-xs uppercase tracking-widest text-[#42495A]">{label}</p>
                 <p className="mb-1 font-display text-2xl font-bold text-[#F0F1F5]">{format(current)}</p>
                 <Delta current={current} prev={prev} format={format} />

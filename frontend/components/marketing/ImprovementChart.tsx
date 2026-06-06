@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -54,7 +54,7 @@ export function ImprovementChart() {
                 unit="%"
               />
               <Tooltip
-                contentStyle={{ background: '#0B0C12', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ background: '#0C1028', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#7A8496' }}
                 formatter={(v: number, name: string) => [`${v}%`, name === 'paid' ? 'Pro' : 'Free']}
               />

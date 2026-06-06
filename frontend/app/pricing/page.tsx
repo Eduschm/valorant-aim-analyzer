@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { PricingTable } from '@/components/marketing/PricingTable'
@@ -16,7 +16,7 @@ const PRICING_FAQ = FAQ_ITEMS.filter((i) => i.q.includes('cost') || i.q.includes
 
 export default function PricingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
+    <div className="relative min-h-screen overflow-hidden bg-[#070B18]">
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
       <SiteHeader />
 

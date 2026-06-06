@@ -95,7 +95,7 @@ export default function AnalysisReportPage() {
   if (error || report?.status === 'error') {
     const errorMessage = report?.status === 'error' ? report.error || 'Unknown error' : error
     return (
-      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#07080C] px-4">
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070B18] px-4">
         <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -120,7 +120,7 @@ export default function AnalysisReportPage() {
   // --- Loading ---
   if (!report || report.status !== 'done') {
     return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-[#07080C]">
+      <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-[#070B18]">
         <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
         <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
         <div className="relative">
@@ -151,12 +151,12 @@ export default function AnalysisReportPage() {
   const promoted = (riot?.rank_delta ?? 0) > 0
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
+    <div className="relative min-h-screen overflow-hidden bg-[#070B18]">
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
       <Celebrate trigger={report.status === 'done' && !!riot} intense={promoted} />
 
       {/* Nav */}
-      <nav className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#1F2130] bg-[#07080C]/85 px-6 backdrop-blur">
+      <nav className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-[#1F2130] bg-[#070B18]/85 px-6 backdrop-blur">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center clip-corner-sm bg-gradient-to-br from-val-accent to-val-accent-dark">
             <Crosshair className="h-4 w-4 text-white" />

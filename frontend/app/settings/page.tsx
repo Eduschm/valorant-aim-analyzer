@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -62,7 +62,7 @@ export default function SettingsPage() {
         <div>
           <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Email</label>
           <input value="dev@localhost" disabled
-            className="w-full bg-[#0A0B0F] border border-[#1F2130] text-[#42495A] text-sm px-4 py-2.5 disabled:opacity-50" />
+            className="w-full bg-[#0A0E20] border border-[#1F2130] text-[#42495A] text-sm px-4 py-2.5 disabled:opacity-50" />
           <p className="text-[#42495A] text-xs mt-1">Auth not yet enabled — email is fixed.</p>
         </div>
         <div>
@@ -72,7 +72,7 @@ export default function SettingsPage() {
               value={riotId}
               onChange={e => setRiotId(e.target.value)}
               placeholder="PlayerName#NA1"
-              className="flex-1 bg-[#0A0B0F] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 focus:outline-none focus:border-val-accent transition placeholder-[#42495A] font-mono"
+              className="flex-1 bg-[#0A0E20] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 focus:outline-none focus:border-val-accent transition placeholder-[#42495A] font-mono"
             />
             <button onClick={handleLinkRiotId} disabled={savingRiot}
               className="clip-corner-sm bg-val-accent text-white text-xs font-semibold px-4 py-2 hover:bg-val-accent-dark transition disabled:opacity-40">

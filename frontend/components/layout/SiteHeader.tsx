@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -33,7 +33,7 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-[#1F2130] bg-[#07080C]/80 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-[#1F2130] bg-[#070B18]/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
         <Logo />
 
@@ -89,7 +89,7 @@ export function SiteHeader() {
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="fixed inset-y-0 right-0 z-50 flex w-64 flex-col gap-1 border-l border-[#1F2130] bg-[#0A0B0F] p-5 md:hidden"
+              className="fixed inset-y-0 right-0 z-50 flex w-64 flex-col gap-1 border-l border-[#1F2130] bg-[#0A0E20] p-5 md:hidden"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}

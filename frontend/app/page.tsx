@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { SiteHeader } from '@/components/layout/SiteHeader'
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
+    <div className="relative min-h-screen overflow-hidden bg-[#070B18]">
       {/* Background layers */}
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
       <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
@@ -53,7 +53,7 @@ export default function LandingPage() {
 
         {/* CTA band */}
         <section className="relative mx-auto max-w-6xl px-6 pb-24">
-          <div className="relative overflow-hidden rounded-2xl border border-val-accent/20 bg-gradient-to-br from-[#0e1330] to-[#0B0C12] px-8 py-12 text-center">
+          <div className="relative overflow-hidden rounded-2xl border border-val-accent/20 bg-gradient-to-br from-[#0e1330] to-[#0C1028] px-8 py-12 text-center">
             <div className="pointer-events-none absolute inset-0 bg-grid opacity-40" />
             <div className="relative">
               <h2 className="font-display text-3xl font-bold tracking-tight md:text-4xl">Ready to climb?</h2>

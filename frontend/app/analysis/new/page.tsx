@@ -1,11 +1,11 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 import { ArrowLeft, Crosshair } from 'lucide-react'
 import { AnalysisForm } from '@/components/analysis/AnalysisForm'
 import { Reveal } from '@/components/ui/motion'
 
 export default function NewAnalysisPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
+    <div className="relative min-h-screen overflow-hidden bg-[#070B18]">
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
       <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
 

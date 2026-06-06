@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/layout/SiteHeader'
 import { SiteFooter } from '@/components/layout/SiteFooter'
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function FaqPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07080C]">
+    <div className="relative min-h-screen overflow-hidden bg-[#070B18]">
       <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
       <SiteHeader />
 

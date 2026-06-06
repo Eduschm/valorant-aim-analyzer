@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -93,7 +93,7 @@ function TrackerContent() {
                 <XAxis dataKey="label" tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis domain={['auto', 'auto']} tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
                 <Tooltip
-                  contentStyle={{ background: '#0B0C12', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
+                  contentStyle={{ background: '#0C1028', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
                   labelStyle={{ color: '#7A8496' }}
                   itemStyle={{ color: '#4361EE' }}
                 />

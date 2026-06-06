@@ -9,7 +9,7 @@ const config: Config = {
     extend: {
       colors: {
         val: {
-          bg:           '#0A0B0F',
+          bg:           '#070B18',
           surface:      '#111318',
           'surface-2':  '#181A22',
           border:       '#1F2130',
