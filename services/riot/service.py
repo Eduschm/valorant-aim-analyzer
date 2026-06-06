@@ -28,11 +28,14 @@ logger = get_logger("services.riot.service")
 
 def _resolve_provider() -> str:
     """Pick the match-data provider. Explicit MATCH_PROVIDER wins; otherwise use
-    Henrik when a key is available, else fall back to the Riot direct API."""
+    Henrik when a key is available, else fall back to the Riot direct API.
+    Reads env vars at call time so a restart is never required after .env changes."""
     explicit = os.getenv("MATCH_PROVIDER", "").strip().lower()
     if explicit in {"henrik", "riot"}:
         return explicit
-    return "henrik" if HENRIK_API_KEY else "riot"
+    # Read directly from os.environ — not the module-level constant — so the
+    # value is always current regardless of when the module was first imported.
+    return "henrik" if os.getenv("HENRIK_API_KEY", "") else "riot"
 
 
 async def get_riot_report(riot_id: str, region: str = "na", match_count: int = 20) -> RiotReport:

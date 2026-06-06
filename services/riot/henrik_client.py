@@ -54,8 +54,11 @@ class HenrikClient:
         self.affinity = self.region if self.region in VALID_AFFINITIES else "na"
         self.platform = platform
         headers = {"Accept": "application/json"}
-        if HENRIK_API_KEY:
-            headers["Authorization"] = HENRIK_API_KEY
+        # Read at instantiation time, not import time, so .env changes take
+        # effect without a full module reload.
+        key = os.getenv("HENRIK_API_KEY", "") or HENRIK_API_KEY
+        if key:
+            headers["Authorization"] = key
         self._client = httpx.AsyncClient(timeout=20.0, headers=headers)
 
     async def __aenter__(self):

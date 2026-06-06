@@ -523,9 +523,12 @@ Desktop client, CS2/Apex, team/coach accounts, replay file parsing, mobile app, 
 Copy `.env.example` to `.env` and fill in:
 ```
 RIOT_API_KEY=RGAPI-...        # https://developer.riotgames.com
+HENRIK_API_KEY=HDEV-...       # https://discord.com/invite/X3GaVkX2YN → #get-a-key (free, no prod Riot key needed)
 ANTHROPIC_API_KEY=sk-ant-...  # https://console.anthropic.com
 DEV_MODE=true
 ```
+
+> **Why HENRIK_API_KEY?** Riot dev keys 403 on `val/match/v1` (match data). Henrik proxies the same data and works with a free key. Without it the pipeline falls back to the Riot match endpoint and every analysis errors.
 
 Frontend config (`frontend/.env.local`):
 ```
@@ -651,7 +654,8 @@ pip install -r requirements.txt
 
 | Key | Where to get | Required for |
 |---|---|---|
-| `RIOT_API_KEY` | https://developer.riotgames.com | Match history + rank |
+| `RIOT_API_KEY` | https://developer.riotgames.com | Account lookup (PUUID resolution) |
+| `HENRIK_API_KEY` | HenrikDev Discord → #get-a-key | Match history + MMR (required — dev Riot key 403s on match data) |
 | `ANTHROPIC_API_KEY` | https://console.anthropic.com | Coaching report (~$0.006/report) |
 | `RESEND_API_KEY` | https://resend.com | Magic link email (not built yet) |
 | `DATABASE_URL` | Neon or Supabase free tier | Persistent auth (not built yet) |
