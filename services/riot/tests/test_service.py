@@ -31,7 +31,8 @@ MOCK_MATCH_UNRANKED = {
 
 
 @pytest.mark.asyncio
-async def test_get_riot_report_full_pipeline():
+async def test_get_riot_report_full_pipeline(monkeypatch):
+    monkeypatch.setenv("MATCH_PROVIDER", "riot")
     with patch("services.riot.service.RiotClient") as MockClient:
         inst = MockClient.return_value.__aenter__.return_value
         inst.get_puuid      = AsyncMock(return_value=PUUID)
@@ -59,8 +60,9 @@ async def test_get_riot_report_invalid_format_raises():
 
 
 @pytest.mark.asyncio
-async def test_get_riot_report_skips_failed_matches():
+async def test_get_riot_report_skips_failed_matches(monkeypatch):
     """One match fetch fails — rest should still succeed."""
+    monkeypatch.setenv("MATCH_PROVIDER", "riot")
     with patch("services.riot.service.RiotClient") as MockClient:
         inst = MockClient.return_value.__aenter__.return_value
         inst.get_puuid     = AsyncMock(return_value=PUUID)
@@ -79,8 +81,9 @@ async def test_get_riot_report_skips_failed_matches():
 
 
 @pytest.mark.asyncio
-async def test_get_riot_report_rank_unranked_without_tier():
+async def test_get_riot_report_rank_unranked_without_tier(monkeypatch):
     """Matches without competitiveTier → rank shown as Unranked, report still succeeds."""
+    monkeypatch.setenv("MATCH_PROVIDER", "riot")
     with patch("services.riot.service.RiotClient") as MockClient:
         inst = MockClient.return_value.__aenter__.return_value
         inst.get_puuid     = AsyncMock(return_value=PUUID)

@@ -15,7 +15,7 @@ export async function GET(
   }
 
   try {
-    const res = await fetch(`${API_URL}/api/v1/report/${id}`)
+    const res = await fetch(`${API_URL}/api/v1/report/${id}`, { cache: 'no-store' })
 
     if (!res.ok) {
       const err = await res.text()

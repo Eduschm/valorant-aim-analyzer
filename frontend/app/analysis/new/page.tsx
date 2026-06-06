@@ -11,11 +11,11 @@ export default function NewAnalysisPage() {
 
       <nav className="relative flex h-14 items-center justify-between border-b border-[#1F2130] px-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center clip-corner-sm bg-gradient-to-br from-[#FF4655] to-[#B8323D]">
+          <span className="flex h-7 w-7 items-center justify-center clip-corner-sm bg-gradient-to-br from-val-accent to-val-accent-dark">
             <Crosshair className="h-4 w-4 text-white" />
           </span>
           <span className="font-display text-lg font-bold uppercase tracking-widest">
-            <span className="text-[#FF4655]">AimLab</span>
+            <span className="text-val-accent">AimLab</span>
             <span className="text-[#F0F1F5]">VAL</span>
           </span>
         </Link>
@@ -33,7 +33,7 @@ export default function NewAnalysisPage() {
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
 
-          <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Step 1 of 1</p>
+          <p className="mb-2 text-xs uppercase tracking-[0.3em] text-val-accent">Step 1 of 1</p>
           <h1 className="font-display text-4xl font-bold tracking-tight">New Analysis</h1>
           <p className="mb-10 mt-2 text-sm text-[#7A8496]">
             Enter a Riot ID to analyze the last 20 matches.

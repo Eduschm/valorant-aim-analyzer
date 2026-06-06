@@ -77,9 +77,7 @@ async def health():
 @app.get("/debug/env")
 async def debug_env():
     """Show which provider will be used and which keys are present.
-    Only active when DEV_MODE=true. Never exposes key values — only presence."""
-    if not DEV_MODE:
-        raise HTTPException(status_code=404, detail="Not found")
+    Never exposes key values — only presence/absence."""
     henrik_key = os.getenv("HENRIK_API_KEY", "")
     riot_key   = os.getenv("RIOT_API_KEY", "")
     match_provider = os.getenv("MATCH_PROVIDER", "")

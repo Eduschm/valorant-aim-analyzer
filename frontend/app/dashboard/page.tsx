@@ -10,13 +10,13 @@ export default function DashboardPage() {
     <PageTransition className="mx-auto max-w-5xl p-6 sm:p-8">
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <p className="mb-1 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Overview</p>
+          <p className="mb-1 text-xs uppercase tracking-[0.3em] text-val-accent">Overview</p>
           <h1 className="font-display text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="mt-1 text-sm text-[#7A8496]">Your aim analysis history</p>
         </div>
         <Link
           href="/analysis/new"
-          className="clip-corner-sm inline-flex items-center gap-2 bg-[#FF4655] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#CC3542]"
+          className="clip-corner-sm inline-flex items-center gap-2 bg-val-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-val-accent-dark"
         >
           <Plus className="h-4 w-4" /> New Analysis
         </Link>

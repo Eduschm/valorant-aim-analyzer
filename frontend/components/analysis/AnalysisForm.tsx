@@ -89,7 +89,7 @@ export function AnalysisForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
 
       {error && (
-        <div className="flex items-start gap-3 border border-[#FF4655]/30 bg-[#FF4655]/5 px-4 py-3 text-[#FF4655] text-sm">
+        <div className="flex items-start gap-3 border border-val-danger/30 bg-val-danger/5 px-4 py-3 text-val-danger text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {error}
         </div>
       )}
@@ -105,10 +105,10 @@ export function AnalysisForm() {
             onFocus={() => suggestions.length > 0 && setShowDrop(true)}
             placeholder="PlayerName#NA1"
             autoFocus
-            className="w-full bg-[#111318] border border-[#1F2130] text-[#F0F1F5] text-lg px-4 py-4 focus:outline-none focus:border-[#FF4655] transition placeholder-[#42495A] font-mono"
+            className="w-full bg-[#111318] border border-[#1F2130] text-[#F0F1F5] text-lg px-4 py-4 focus:outline-none focus:border-val-accent transition placeholder-[#42495A] font-mono"
           />
           {showDrop && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full border border-[#1F2130] bg-[#181A22] z-10 shadow-red-glow-sm">
+            <div className="absolute left-0 right-0 top-full border border-[#1F2130] bg-[#181A22] z-10 shadow-accent-glow-sm">
               {suggestions.map((s, i) => (
                 <button type="button" key={i}
                   onClick={() => pickSuggestion(s)}
@@ -124,7 +124,7 @@ export function AnalysisForm() {
         <div className="flex flex-wrap gap-2 mt-2">
           {lastUsed && lastUsed !== riotId && (
             <button type="button" onClick={() => setRiotId(lastUsed)}
-              className="text-xs text-[#7A8496] border border-[#1F2130] px-2 py-1 hover:border-[#FF4655]/50 hover:text-[#F0F1F5] transition font-mono">
+              className="text-xs text-[#7A8496] border border-[#1F2130] px-2 py-1 hover:border-val-accent/50 hover:text-[#F0F1F5] transition font-mono">
               ↩ {lastUsed}
             </button>
           )}
@@ -142,7 +142,7 @@ export function AnalysisForm() {
         <label className="block text-[#42495A] text-xs uppercase tracking-widest mb-2">Region</label>
         <div className="relative inline-block">
           <select value={region} onChange={e => setRegion(e.target.value)}
-            className="appearance-none bg-[#111318] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 pr-8 focus:outline-none focus:border-[#FF4655] transition cursor-pointer">
+            className="appearance-none bg-[#111318] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 pr-8 focus:outline-none focus:border-val-accent transition cursor-pointer">
             {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
           <ChevronDown className="absolute right-2 top-3 w-4 h-4 text-[#42495A] pointer-events-none" />
@@ -155,14 +155,14 @@ export function AnalysisForm() {
         <div className="grid grid-cols-2 gap-1.5 text-[#7A8496] text-sm">
           {['Headshot %', 'ADR', 'Win rate', 'Top agent', 'Top weapon', 'Rank delta'].map(item => (
             <div key={item} className="flex items-center gap-2">
-              <div className="w-1 h-1 bg-[#FF4655] rounded-full flex-shrink-0" /> {item}
+              <div className="w-1 h-1 bg-val-accent rounded-full flex-shrink-0" /> {item}
             </div>
           ))}
         </div>
       </div>
 
       <button type="submit" disabled={loading || !riotId}
-        className="clip-corner w-full flex items-center justify-center gap-2 bg-[#FF4655] text-white font-semibold py-4 text-sm hover:bg-[#CC3542] transition disabled:opacity-40 shadow-red-glow-sm">
+        className="clip-corner w-full flex items-center justify-center gap-2 bg-val-accent text-white font-semibold py-4 text-sm hover:bg-val-accent-dark transition disabled:opacity-40 shadow-accent-glow-sm">
         {loading ? (
           <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing...</>
         ) : (

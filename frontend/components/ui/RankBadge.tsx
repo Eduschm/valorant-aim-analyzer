@@ -34,7 +34,7 @@ export function RankBadge({
     >
       {promoted && (
         <motion.span
-          className="pointer-events-none absolute inset-0 rounded-full bg-[#FF4655]/30 blur-xl"
+          className="pointer-events-none absolute inset-0 rounded-full bg-val-accent/30 blur-xl"
           animate={{ scale: [1, 1.35, 1], opacity: [0.5, 0.9, 0.5] }}
           transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
         />

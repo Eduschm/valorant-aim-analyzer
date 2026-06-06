@@ -33,7 +33,7 @@ export function QuickStats() {
         <Item key={label}>
           <div className="glass glass-hover rounded-xl p-5">
             <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
-              <Icon className="h-3.5 w-3.5 text-[#FF4655]" /> {label}
+              <Icon className="h-3.5 w-3.5 text-val-accent" /> {label}
             </div>
             <div className="font-display text-3xl font-bold text-[#F0F1F5]">
               <AnimatedCounter value={value} decimals={decimals} suffix={suffix} />

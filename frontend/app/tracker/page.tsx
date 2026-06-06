@@ -53,7 +53,7 @@ function TrackerContent() {
 
       {/* Header */}
       <div>
-        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Tracker</p>
+        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-val-accent">Tracker</p>
         <div className="flex flex-wrap items-center gap-4">
           {current?.current_rank && (
             <RankBadge rank={current.current_rank} size={52} promoted={(current.rank_delta ?? 0) > 0} />
@@ -64,12 +64,12 @@ function TrackerContent() {
               <span className="text-xl text-[#42495A]">#{current?.tag_line}</span>
             </h1>
             {current?.current_rank && (
-              <span className="rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-3 py-0.5 text-sm font-semibold text-[#FF4655]">
+              <span className="rounded-full border border-val-accent/30 bg-val-accent/10 px-3 py-0.5 text-sm font-semibold text-val-accent">
                 {current.current_rank}
               </span>
             )}
             {current?.rank_delta !== undefined && (
-              <span className={`text-xs ${current.rank_delta >= 0 ? 'text-emerald-400' : 'text-[#FF4655]'}`}>
+              <span className={`text-xs ${current.rank_delta >= 0 ? 'text-emerald-400' : 'text-val-danger'}`}>
                 {current.rank_delta >= 0 ? '+' : ''}{current.rank_delta} tiers
               </span>
             )}
@@ -78,7 +78,7 @@ function TrackerContent() {
         {!riotId && (
           <p className="mt-1 text-xs text-[#42495A]">
             Showing latest analysis.{' '}
-            <Link href="/analysis/new" className="text-[#FF4655] hover:underline">Run a new one</Link>
+            <Link href="/analysis/new" className="text-val-accent hover:underline">Run a new one</Link>
           </p>
         )}
       </div>
@@ -95,9 +95,9 @@ function TrackerContent() {
                 <Tooltip
                   contentStyle={{ background: '#0B0C12', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
                   labelStyle={{ color: '#7A8496' }}
-                  itemStyle={{ color: '#FF4655' }}
+                  itemStyle={{ color: '#4361EE' }}
                 />
-                <Line type="monotone" dataKey="hs" stroke="#FF4655" strokeWidth={2.5} dot={{ r: 3, fill: '#FF4655' }} />
+                <Line type="monotone" dataKey="hs" stroke="#4361EE" strokeWidth={2.5} dot={{ r: 3, fill: '#4361EE' }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

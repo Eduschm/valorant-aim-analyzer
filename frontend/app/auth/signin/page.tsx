@@ -73,7 +73,7 @@ export default function SignInPage() {
 
         <div className="glass rounded-2xl p-8">
           <div className="mb-7">
-            <span className="flex h-10 w-10 items-center justify-center clip-corner-sm bg-gradient-to-br from-[#FF4655] to-[#B8323D] shadow-red-glow-sm">
+            <span className="flex h-10 w-10 items-center justify-center clip-corner-sm bg-gradient-to-br from-val-accent to-val-accent-dark shadow-accent-glow-sm">
               <Crosshair className="h-5 w-5 text-white" />
             </span>
             <h1 className="mt-5 text-2xl font-bold">Sign in</h1>
@@ -83,7 +83,7 @@ export default function SignInPage() {
           </div>
 
           {error && (
-            <div className="mb-6 border border-[#FF4655]/40 bg-[#FF4655]/5 px-4 py-3 text-sm text-[#FF4655]">
+            <div className="mb-6 border border-val-danger/40 bg-val-danger/5 px-4 py-3 text-sm text-val-danger">
               {error}
             </div>
           )}
@@ -110,7 +110,7 @@ export default function SignInPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-3 pl-10 pr-4 text-sm text-[#F0F1F5] placeholder-[#42495A] transition focus:border-[#FF4655] focus:outline-none"
+                    className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-3 pl-10 pr-4 text-sm text-[#F0F1F5] placeholder-[#42495A] transition focus:border-val-accent focus:outline-none"
                   />
                 </div>
               </div>
@@ -118,7 +118,7 @@ export default function SignInPage() {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="clip-corner w-full bg-[#FF4655] py-3 text-sm font-semibold text-white transition hover:bg-[#CC3542] disabled:opacity-40"
+                className="clip-corner w-full bg-val-accent py-3 text-sm font-semibold text-white transition hover:bg-val-accent-dark disabled:opacity-40"
               >
                 {loading ? 'Sending...' : 'Send magic link'}
               </motion.button>
@@ -127,12 +127,12 @@ export default function SignInPage() {
 
           <div className="mt-8 border-t border-[#1F2130] pt-6">
             <p className="mb-3 flex items-center gap-2 text-xs uppercase tracking-widest text-[#42495A]">
-              <Zap className="h-3 w-3 text-[#FF4655]" /> Dev bypass
+              <Zap className="h-3 w-3 text-val-accent" /> Dev bypass
             </p>
             <button
               onClick={handleDevBypass}
               disabled={devLoading}
-              className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-2.5 text-sm text-[#7A8496] transition hover:border-[#FF4655]/50 hover:text-[#F0F1F5] disabled:opacity-40"
+              className="w-full rounded-lg border border-[#1F2130] bg-[#0A0B0F] py-2.5 text-sm text-[#7A8496] transition hover:border-val-accent/50 hover:text-[#F0F1F5] disabled:opacity-40"
             >
               {devLoading ? 'Creating session...' : 'Skip auth, go straight to analysis'}
             </button>

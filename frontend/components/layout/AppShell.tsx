@@ -28,11 +28,11 @@ const NAV = [
 function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2 group">
-      <span className="relative flex h-8 w-8 items-center justify-center clip-corner-sm bg-gradient-to-br from-[#FF4655] to-[#B8323D] shadow-red-glow-sm">
+      <span className="relative flex h-8 w-8 items-center justify-center clip-corner-sm bg-gradient-to-br from-val-accent to-val-accent-dark shadow-accent-glow-sm">
         <Crosshair className="h-4 w-4 text-white" />
       </span>
       <span className="font-display text-base font-bold tracking-widest uppercase">
-        <span className="text-[#FF4655]">AimLab</span>
+        <span className="text-val-accent">AimLab</span>
         <span className="text-[#F0F1F5]">VAL</span>
       </span>
     </Link>
@@ -57,14 +57,14 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             {active && (
               <motion.span
                 layoutId="active-nav"
-                className="absolute inset-0 rounded-lg bg-[#FF4655]/10 border border-[#FF4655]/30"
+                className="absolute inset-0 rounded-lg bg-val-accent/10 border border-val-accent/30"
                 transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               />
             )}
             {active && (
               <motion.span
                 layoutId="active-bar"
-                className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-[#FF4655]"
+                className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-val-accent"
                 transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               />
             )}
@@ -105,7 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <NavLinks />
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-[#FF4655] transition border-t border-[#1F2130]"
+          className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-val-danger transition border-t border-[#1F2130]"
         >
           <LogOut className="h-4 w-4" />
           Sign out
@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <NavLinks onNavigate={() => setMobileOpen(false)} />
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-[#FF4655] transition border-t border-[#1F2130]"
+                className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-val-danger transition border-t border-[#1F2130]"
               >
                 <LogOut className="h-4 w-4" />
                 Sign out
@@ -168,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </h2>
           <Link
             href="/analysis/new"
-            className="ml-auto clip-corner-sm hidden items-center gap-1.5 bg-[#FF4655] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#CC3542] sm:inline-flex"
+            className="ml-auto clip-corner-sm hidden items-center gap-1.5 bg-val-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-val-accent-dark sm:inline-flex"
           >
             <Plus className="h-3.5 w-3.5" /> New analysis
           </Link>

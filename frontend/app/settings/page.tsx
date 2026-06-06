@@ -52,7 +52,7 @@ export default function SettingsPage() {
     <PageTransition className="mx-auto max-w-xl space-y-6 p-6 sm:p-8">
 
       <div>
-        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Settings</p>
+        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-val-accent">Settings</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">Account</h1>
       </div>
 
@@ -72,10 +72,10 @@ export default function SettingsPage() {
               value={riotId}
               onChange={e => setRiotId(e.target.value)}
               placeholder="PlayerName#NA1"
-              className="flex-1 bg-[#0A0B0F] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 focus:outline-none focus:border-[#FF4655] transition placeholder-[#42495A] font-mono"
+              className="flex-1 bg-[#0A0B0F] border border-[#1F2130] text-[#F0F1F5] text-sm px-4 py-2.5 focus:outline-none focus:border-val-accent transition placeholder-[#42495A] font-mono"
             />
             <button onClick={handleLinkRiotId} disabled={savingRiot}
-              className="clip-corner-sm bg-[#FF4655] text-white text-xs font-semibold px-4 py-2 hover:bg-[#CC3542] transition disabled:opacity-40">
+              className="clip-corner-sm bg-val-accent text-white text-xs font-semibold px-4 py-2 hover:bg-val-accent-dark transition disabled:opacity-40">
               {savingRiot ? '...' : 'Link'}
             </button>
           </div>
@@ -100,7 +100,7 @@ export default function SettingsPage() {
       <Reveal className="glass space-y-3 rounded-xl p-6" delay={0.1}>
         <p className="text-xs uppercase tracking-widest text-[#42495A]">Developer</p>
         <button onClick={handleDevBypass} disabled={devLoading}
-          className="w-full text-left border border-[#1F2130] text-[#7A8496] text-sm py-2.5 px-4 hover:border-[#FF4655]/40 hover:text-[#F0F1F5] transition disabled:opacity-40">
+          className="w-full text-left border border-[#1F2130] text-[#7A8496] text-sm py-2.5 px-4 hover:border-val-accent/40 hover:text-[#F0F1F5] transition disabled:opacity-40">
           {devLoading ? 'Creating session...' : 'Create dev session (skip auth)'}
         </button>
         {devMsg && <p className="text-[#7A8496] text-xs">{devMsg}</p>}
@@ -110,7 +110,7 @@ export default function SettingsPage() {
       {/* Sign out */}
       <Reveal className="glass rounded-xl p-6" delay={0.15}>
         <button onClick={handleSignOut}
-          className="text-[#FF4655] text-sm hover:underline">
+          className="text-val-danger text-sm hover:underline">
           Sign out and clear local data
         </button>
       </Reveal>

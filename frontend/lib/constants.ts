@@ -1,7 +1,7 @@
 // Design system colors and constants
 export const COLORS = {
-  primary: '#FF4655',
-  primaryDark: '#C4323E',
+  primary: '#4361EE',
+  primaryDark: '#3046C0',
   secondary: '#0F1923',
   accent: '#69C9D0',
   textPrimary: '#ECE8E1',

@@ -15,7 +15,7 @@ export function WeaponStats({ data }: { data: any[] }) {
             labelStyle={{ color: '#ECE8E1' }}
           />
           <Legend />
-          <Bar dataKey="kills" fill="#FF4655" radius={[8, 8, 0, 0]} />
+          <Bar dataKey="kills" fill="#4361EE" radius={[8, 8, 0, 0]} />
           <Bar dataKey="accuracy" fill="#69C9D0" radius={[8, 8, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>

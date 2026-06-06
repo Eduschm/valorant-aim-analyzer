@@ -21,7 +21,7 @@ export function StatsTrend({ label, current, prev, format }: StatsTrendProps) {
       <p className="text-xs uppercase tracking-widest text-[#42495A] mb-3">{label}</p>
       <p className="font-display text-4xl font-bold text-[#F0F1F5] mb-2">{format(current)}</p>
       {delta !== null ? (
-        <div className={`flex items-center gap-1 text-xs ${up ? 'text-green-400' : dn ? 'text-[#FF4655]' : 'text-[#42495A]'}`}>
+        <div className={`flex items-center gap-1 text-xs ${up ? 'text-green-400' : dn ? 'text-val-danger' : 'text-[#42495A]'}`}>
           {up ? <TrendingUp className="w-3 h-3" /> : dn ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
           {up ? '+' : ''}{format(delta)} vs last analysis
           {pctChg !== null && <span className="text-[#42495A] ml-1">({pctChg > 0 ? '+' : ''}{pctChg.toFixed(1)}%)</span>}

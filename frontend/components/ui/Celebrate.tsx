@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import confetti from 'canvas-confetti'
 
-const VALORANT_COLORS = ['#FF4655', '#FF8A93', '#F0F1F5', '#FFD166']
+const VALORANT_COLORS = ['#4361EE', '#8E9DF5', '#F0F1F5', '#FFD166']
 
 /** Fire a one-shot confetti burst. `intense` adds extra cannons for rank-ups. */
 export function fireConfetti(intense = false) {

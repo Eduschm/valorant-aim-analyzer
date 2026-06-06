@@ -44,7 +44,7 @@ export function AnalysisHistory() {
     return (
       <div className="glass rounded-xl p-10 text-center text-sm text-[#42495A]">
         No analyses yet.{' '}
-        <Link href="/analysis/new" className="text-[#FF4655] hover:underline">
+        <Link href="/analysis/new" className="text-val-accent hover:underline">
           Run your first one
         </Link>
       </div>
@@ -74,7 +74,7 @@ export function AnalysisHistory() {
                 <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-400">Done</span>
               </td>
               <td className="px-5 py-3 text-right">
-                <Link href={`/analysis/${row.id}`} className="inline-flex items-center gap-1 text-xs text-[#FF4655] hover:underline">
+                <Link href={`/analysis/${row.id}`} className="inline-flex items-center gap-1 text-xs text-val-accent hover:underline">
                   View <ArrowRight className="h-3 w-3" />
                 </Link>
               </td>

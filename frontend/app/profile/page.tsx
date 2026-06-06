@@ -17,7 +17,7 @@ function Delta({ current, prev, format }: { current: number; prev: number | null
   const up = d > 0
   const dn = d < 0
   return (
-    <span className={`inline-flex items-center gap-1 text-xs ${up ? 'text-emerald-400' : dn ? 'text-[#FF4655]' : 'text-[#42495A]'}`}>
+    <span className={`inline-flex items-center gap-1 text-xs ${up ? 'text-emerald-400' : dn ? 'text-val-danger' : 'text-[#42495A]'}`}>
       {up ? <TrendingUp className="h-3 w-3" /> : dn ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
       {up ? '+' : ''}{format(d)} since first
     </span>
@@ -60,7 +60,7 @@ export default function ProfilePage() {
     <PageTransition className="mx-auto max-w-2xl space-y-6 p-6 sm:p-8">
 
       <div>
-        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[#FF4655]">Profile</p>
+        <p className="mb-2 text-xs uppercase tracking-[0.3em] text-val-accent">Profile</p>
         <h1 className="font-display text-3xl font-bold tracking-tight">Your Account</h1>
       </div>
 
@@ -73,7 +73,7 @@ export default function ProfilePage() {
               {riot?.game_name ?? '-'}<span className="text-[#42495A]">#{riot?.tag_line}</span>
             </span>
             {riot?.current_rank && (
-              <span className="rounded-full border border-[#FF4655]/30 bg-[#FF4655]/10 px-2.5 py-0.5 text-sm font-semibold text-[#FF4655]">
+              <span className="rounded-full border border-val-accent/30 bg-val-accent/10 px-2.5 py-0.5 text-sm font-semibold text-val-accent">
                 {riot.current_rank}
               </span>
             )}
@@ -82,7 +82,7 @@ export default function ProfilePage() {
             {analyses.length} analysis{analyses.length !== 1 ? 'es' : ''} saved
             {latest && ` · last run ${new Date(latest.saved_at).toLocaleDateString()}`}
           </p>
-          <Link href="/tracker" className="inline-flex items-center gap-1 text-xs text-[#FF4655] hover:underline">
+          <Link href="/tracker" className="inline-flex items-center gap-1 text-xs text-val-accent hover:underline">
             View tracker <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
@@ -117,7 +117,7 @@ export default function ProfilePage() {
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#1F2130]">
             <motion.div
-              className="h-1.5 rounded-full bg-gradient-to-r from-[#FF4655] to-[#B8323D]"
+              className="h-1.5 rounded-full bg-gradient-to-r from-val-accent to-val-accent-dark"
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, (usedThisMonth / FREE_LIMIT) * 100)}%` }}
               transition={{ duration: 0.9, ease: 'easeOut' }}
@@ -125,7 +125,7 @@ export default function ProfilePage() {
           </div>
           <Link
             href="/settings"
-            className="clip-corner-sm mt-1 inline-flex items-center gap-2 bg-[#FF4655] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#CC3542]"
+            className="clip-corner-sm mt-1 inline-flex items-center gap-2 bg-val-accent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-val-accent-dark"
           >
             Upgrade for unlimited <ArrowRight className="h-3 w-3" />
           </Link>
