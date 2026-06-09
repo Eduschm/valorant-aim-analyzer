@@ -35,11 +35,13 @@ DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
 try:
     from .schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest
-    from .store   import store
+    from .db_store import db_store
+    from .database import init_db
 except ImportError:
     # Fallback for running with: uvicorn main:app (not as package)
     from schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest  # type: ignore
-    from store   import store  # type: ignore
+    from db_store import db_store  # type: ignore
+    from database import init_db  # type: ignore
 
 # Simple in-memory session store (replaced by DB+JWT in auth implementation)
 # token → user dict
@@ -50,7 +52,18 @@ def _make_token(user_id: str) -> str:
     raw = f"{user_id}:{secrets.token_hex(32)}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
-app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0")
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Creates tables for sqlite dev; production schemas come from alembic.
+    await init_db()
+    logger.info("Database initialized")
+    yield
+
+
+app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0", lifespan=lifespan)
 logger.info("Starting API app: DEV_MODE=%s", DEV_MODE)
 
 app.add_middleware(
@@ -86,7 +99,7 @@ async def submit_analysis(body: AnalyzeRequest, background_tasks: BackgroundTask
     Poll GET /api/v1/report/{report_id} until status == "done".
     """
     logger.info("Received analysis request for %s region=%s", body.riot_id, body.region)
-    record = store.create(body.riot_id)
+    record = await db_store.create(body.riot_id)
     background_tasks.add_task(_run_analysis, record.id, body.riot_id, body.region)
     logger.info("Queued background analysis report=%s riot_id=%s region=%s", record.id, body.riot_id, body.region)
     return AnalyzeResponse(report_id=record.id, status="queued")
@@ -130,7 +143,7 @@ def _friendly_error(exc: Exception) -> str:
 
 async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
     """Background task: fetch Riot data → generate coaching → store result."""
-    store.update(report_id, status="processing")
+    await db_store.update(report_id, status="processing")
     logger.info("Background task start report=%s riot_id=%s region=%s", report_id, riot_id, region)
     try:
         # Works whether run from repo root (services.riot) or services/api (sys.path set above)
@@ -145,7 +158,7 @@ async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
         riot = await get_riot_report(riot_id, region=region)
         coaching = await generate_coaching_report(riot)
 
-        store.update(
+        await db_store.update(
             report_id,
             status="done",
             riot_report=dataclasses.asdict(riot),
@@ -154,13 +167,13 @@ async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
         logger.info("Background task complete report=%s riot_id=%s status=done", report_id, riot_id)
     except Exception as exc:
         logger.exception("Background task failed report=%s riot_id=%s", report_id, riot_id)
-        store.update(report_id, status="error", error=_friendly_error(exc))
+        await db_store.update(report_id, status="error", error=_friendly_error(exc))
 
 
 @app.get("/api/v1/report/{report_id}", response_model=ReportResponse)
 async def get_report(report_id: str):
     """Poll for report status + results."""
-    record = store.get(report_id)
+    record = await db_store.get(report_id)
     if record is None:
         logger.warning("Report not found: %s", report_id)
         raise HTTPException(status_code=404, detail="Report not found")

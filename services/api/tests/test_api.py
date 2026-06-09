@@ -37,11 +37,13 @@ MOCK_COACHING = CoachingReport(
 
 @pytest.fixture
 def client():
-    # Reset store between tests
-    from services.api.store import store
-    store._reports.clear()
+    # Fresh sqlite DB per test — lifespan (init_db) recreates the tables
+    from .conftest import TEST_DB_PATH
+    if os.path.exists(TEST_DB_PATH):
+        os.remove(TEST_DB_PATH)
     from services.api.main import app
-    return TestClient(app)
+    with TestClient(app) as c:
+        yield c
 
 
 def test_health(client):
