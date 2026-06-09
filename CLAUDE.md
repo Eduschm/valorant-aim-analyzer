@@ -560,7 +560,16 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```powershell
 pip install -r requirements.txt   # Python services
 cd frontend && npm install          # Frontend
+pre-commit install                  # Wire gate-test hooks (runs on every commit)
 ```
+
+### Download CV model (Phase 2)
+
+```bash
+python services/cv/scripts/download_model.py
+```
+
+Without this, the CV service falls back to YOLOv8n (lower accuracy). Phase 1 (Riot + LLM only) works fine without it.
 
 ### Dev bypass (no email or database needed)
 
