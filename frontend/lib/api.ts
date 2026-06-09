@@ -21,6 +21,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   logger.debug('API request', options.method || 'GET', url)
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json', ...options.headers },
+    credentials: 'include', // auth_token cookie lives on the API origin
     ...options,
   })
   if (!res.ok) {
@@ -85,7 +86,31 @@ export const analysisApi = {
 // Auth
 // --------------------------------------------------------------------------
 
+export interface MeResponse {
+  id:           string
+  email:        string
+  riot_id:      string | null
+  is_paid:      boolean
+  credits_used: number
+  created_at:   string
+}
+
 export const authApi = {
+  /**
+   * Current authenticated user, or null when signed out (401).
+   * Other failures (network, 5xx) also resolve to null — the app treats
+   * "can't reach the API" as signed out rather than blocking the UI.
+   */
+  me: async (): Promise<MeResponse | null> => {
+    if (MOCK_MODE) return null
+    try {
+      return await request<MeResponse>('/api/v1/me')
+    } catch (err) {
+      logger.debug('authApi.me: not authenticated', err)
+      return null
+    }
+  },
+
   /** Request a magic link email. */
   requestMagicLink: async (email: string): Promise<{ message: string }> => {
     if (MOCK_MODE) return { message: 'Check your email (mock mode)' }
