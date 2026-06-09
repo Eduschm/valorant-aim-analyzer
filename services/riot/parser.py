@@ -2,11 +2,33 @@
 
 from __future__ import annotations
 
+import json
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from collections import Counter
 from contracts.schemas import MatchStat, RiotReport
+
+_WEAPONS_PATH = os.path.join(os.path.dirname(__file__), "data", "weapons.json")
+_WEAPONS: dict[str, str] | None = None
+
+
+def _load_weapons() -> dict[str, str]:
+    global _WEAPONS
+    if _WEAPONS is None:
+        try:
+            with open(_WEAPONS_PATH) as f:
+                _WEAPONS = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            _WEAPONS = {}
+    return _WEAPONS
+
+
+def weapon_uuid_to_name(uuid: str, weapons: dict[str, str] | None = None) -> str:
+    """Resolve a Riot weapon UUID to a display name; return the UUID on miss."""
+    if weapons is None:
+        weapons = _load_weapons()
+    return weapons.get(uuid.lower(), uuid)
 
 
 # Riot competitiveTier int -> human-readable rank name.
@@ -55,10 +77,9 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
     total_shots = headshots + bodyshots + legshots
     hs_pct = (headshots / total_shots * 100) if total_shots > 0 else 0.0
 
-    # ADR approximation: combat score / rounds played
-    # Riot doesn't expose damage directly in match-v1
     num_rounds = info.get("numberOfRounds", max(info.get("roundsPlayed", 1), 1))
-    adr = score / num_rounds if num_rounds > 0 else 0.0
+    # Use real per-round damage when available; fall back to score/rounds proxy.
+    adr = _calculate_adr(raw_match, puuid, num_rounds, fallback_score=score)
 
     # Determine if this player's team won
     team_id = player.get("teamId", "")
@@ -92,8 +113,29 @@ def parse_match(raw_match: dict, puuid: str) -> MatchStat | None:
     )
 
 
+def _calculate_adr(
+    raw_match: dict, puuid: str, num_rounds: int, fallback_score: float = 0.0
+) -> float:
+    """
+    Sum `playerRoundStats[*].damage[*].damage` when present.
+    Falls back to combat-score/rounds (Riot doesn't expose damage on dev keys).
+    """
+    rounds = raw_match.get("roundResults", [])
+    if rounds:
+        total = 0
+        for rnd in rounds:
+            for ps in rnd.get("playerStats", []):
+                if ps.get("puuid") != puuid:
+                    continue
+                for dmg in ps.get("damage", []):
+                    total += dmg.get("damage", 0)
+        return total / num_rounds if num_rounds > 0 else 0.0
+    # Fallback: combat score is a rough proxy
+    return fallback_score / num_rounds if num_rounds > 0 else 0.0
+
+
 def _extract_top_weapon(raw_match: dict, puuid: str) -> str:
-    """Best-effort weapon extraction from round results."""
+    """Best-effort weapon extraction from round results; resolves UUIDs to names."""
     rounds = raw_match.get("roundResults", [])
     weapon_kills: Counter = Counter()
 
@@ -107,7 +149,8 @@ def _extract_top_weapon(raw_match: dict, puuid: str) -> str:
                     weapon_kills[weapon_id] += 1
 
     if weapon_kills:
-        return weapon_kills.most_common(1)[0][0]
+        raw_uuid = weapon_kills.most_common(1)[0][0]
+        return weapon_uuid_to_name(raw_uuid)
     return "Unknown"
 
 

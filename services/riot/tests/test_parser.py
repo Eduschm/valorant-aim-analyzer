@@ -140,3 +140,118 @@ def test_build_riot_report_aggregation():
 def test_build_riot_report_empty_matches():
     report = build_riot_report("p","Name","TAG",[],{"rank":"Unranked","rank_delta":0})
     assert report.total_matches == 0 if hasattr(report, "total_matches") else report.matches == []
+
+
+# ------------------------------------------------------------------ #
+# Weapon UUID → name resolution  (Issue #22)
+# ------------------------------------------------------------------ #
+
+from services.riot.parser import weapon_uuid_to_name
+
+
+def test_weapon_uuid_resolves_known_phantom():
+    # UUID from the issue description for Phantom
+    assert weapon_uuid_to_name("ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a") == "Phantom"
+
+
+def test_weapon_uuid_resolves_vandal():
+    assert weapon_uuid_to_name("9c82e19d-4575-0200-1a81-3eacf00cf872") == "Vandal"
+
+
+def test_weapon_uuid_unknown_falls_back_to_uuid():
+    unknown = "00000000-0000-0000-0000-000000000000"
+    assert weapon_uuid_to_name(unknown) == unknown
+
+
+def test_weapon_uuid_case_insensitive():
+    upper = "EE8E8D15-496B-07AC-E5F6-8FAE5D4C7B1A"
+    assert weapon_uuid_to_name(upper) == "Phantom"
+
+
+def test_weapon_uuid_custom_table():
+    table = {"abc-123": "TestGun"}
+    assert weapon_uuid_to_name("abc-123", weapons=table) == "TestGun"
+    assert weapon_uuid_to_name("xyz-999", weapons=table) == "xyz-999"
+
+
+def test_extract_top_weapon_resolves_to_display_name():
+    """_extract_top_weapon returns a human name, not a raw UUID."""
+    match = {
+        "matchInfo": {"matchId": "m1", "numberOfRounds": 10},
+        "players": [{
+            "puuid": PUUID, "teamId": "Red", "characterId": "jett",
+            "competitiveTier": 13,
+            "stats": {"kills":5,"deaths":2,"assists":0,"headshots":3,"bodyshots":7,"legshots":0,"score":1000},
+        }],
+        "teams": [{"teamId": "Red", "won": True}],
+        "roundResults": [
+            {"playerStats": [{
+                "puuid": PUUID,
+                "kills": [{"finishingDamage": {"damageItem": "ee8e8d15-496b-07ac-e5f6-8fae5d4c7b1a"}}],
+                "damage": [{"receiver": "other", "damage": 120, "legshots": 0, "bodyshots": 1, "headshots": 1}],
+            }]},
+        ],
+    }
+    stat = parse_match(match, PUUID)
+    assert stat is not None
+    assert stat.weapon == "Phantom"
+
+
+# ------------------------------------------------------------------ #
+# Real ADR from per-round damage data  (Issue #23)
+# ------------------------------------------------------------------ #
+
+def test_adr_uses_real_damage_when_roundresults_present():
+    """When roundResults has damage data, ADR = total_damage / rounds."""
+    match = {
+        "matchInfo": {"matchId": "m2", "numberOfRounds": 2},
+        "players": [{
+            "puuid": PUUID, "teamId": "Red", "characterId": "sage",
+            "competitiveTier": 10,
+            "stats": {"kills":2,"deaths":1,"assists":0,"headshots":2,"bodyshots":3,"legshots":0,"score":500},
+        }],
+        "teams": [{"teamId": "Red", "won": True}],
+        "roundResults": [
+            {"playerStats": [{"puuid": PUUID, "kills": [], "damage": [
+                {"receiver": "e1", "damage": 100},
+                {"receiver": "e2", "damage": 50},
+            ]}]},
+            {"playerStats": [{"puuid": PUUID, "kills": [], "damage": [
+                {"receiver": "e3", "damage": 150},
+            ]}]},
+        ],
+    }
+    stat = parse_match(match, PUUID)
+    assert stat is not None
+    # 100 + 50 + 150 = 300 damage / 2 rounds = 150.0
+    assert stat.adr == 150.0
+
+
+def test_adr_falls_back_to_score_proxy_when_no_roundresults():
+    """Without roundResults, ADR = score / rounds (existing behaviour)."""
+    stat = parse_match(FIXTURE_MATCH, PUUID)
+    # score=3200, rounds=20 → adr=160.0
+    assert stat.adr == 160.0
+
+
+def test_adr_uses_real_damage_not_score():
+    """With roundResults, the real damage total overrides the score proxy."""
+    match = {
+        "matchInfo": {"matchId": "m3", "numberOfRounds": 10},
+        "players": [{
+            "puuid": PUUID, "teamId": "Blue", "characterId": "reyna",
+            "competitiveTier": 12,
+            "stats": {"kills":10,"deaths":5,"assists":1,"headshots":5,"bodyshots":10,"legshots":0,"score":2000},
+        }],
+        "teams": [{"teamId": "Blue", "won": False}],
+        "roundResults": [
+            # Only 1 round of damage data (the other 9 rounds had 0)
+            {"playerStats": [{"puuid": PUUID, "kills": [], "damage": [
+                {"receiver": "x", "damage": 200},
+            ]}]},
+        ],
+    }
+    stat = parse_match(match, PUUID)
+    assert stat is not None
+    # Real damage: 200 / 10 rounds = 20.0 (not score/rounds = 200.0)
+    assert stat.adr == 20.0

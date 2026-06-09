@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gate-tests
+        name: Gate tests (backend)
+        entry: python -m pytest services/ -v --ignore=services/cv/tests/test_detector.py -x -q -m "not eval"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+
+      - id: frontend-tests
+        name: Gate tests (frontend)
+        entry: bash -c "cd frontend && npm test -- --run"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
