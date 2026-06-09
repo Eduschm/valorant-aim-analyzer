@@ -37,6 +37,7 @@ MOCK_COACHING = CoachingReport(
 
 @pytest.fixture
 def client():
+
     # Fresh sqlite DB per test — lifespan (init_db) recreates the tables
     from .conftest import TEST_DB_PATH
     if os.path.exists(TEST_DB_PATH):
@@ -44,6 +45,7 @@ def client():
     from services.api.main import app
     with TestClient(app) as c:
         yield c
+
 
 
 def test_health(client):
@@ -243,6 +245,39 @@ def test_friendly_error_maps_riot_status(status, needle):
 def test_friendly_error_falls_back_to_message():
     from services.api.main import _friendly_error
     assert _friendly_error(ValueError("boom")) == "boom"
+
+
+# ------------------------------------------------------------------ #
+# Rate limiting  (Issue #21)
+# ------------------------------------------------------------------ #
+
+def test_rate_limit_allows_first_ten_requests(client):
+    """10 requests/minute from the same IP all succeed."""
+    from services.api.main import limiter
+    limiter._storage.reset()
+    for i in range(10):
+        r = client.post("/api/v1/analyze", json={"riot_id": f"Player{i}#NA1"})
+        assert r.status_code == 200, f"Request {i+1} failed with {r.status_code}"
+
+
+def test_rate_limit_blocks_on_11th_request(client):
+    """11th request within the same window returns 429 with Retry-After."""
+    from services.api.main import limiter
+    limiter._storage.reset()
+    for i in range(10):
+        client.post("/api/v1/analyze", json={"riot_id": f"Player{i}#NA1"})
+    r = client.post("/api/v1/analyze", json={"riot_id": "Player10#NA1"})
+    assert r.status_code == 429
+    assert "retry-after" in {k.lower() for k in r.headers}
+
+
+def test_rate_limit_does_not_affect_other_endpoints(client):
+    """GET /health is never rate-limited."""
+    from services.api.main import limiter
+    limiter._storage.reset()
+    for _ in range(15):
+        r = client.get("/health")
+        assert r.status_code == 200
 
 
 def test_friendly_403_surfaced_in_report(client):
