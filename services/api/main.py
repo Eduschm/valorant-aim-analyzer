@@ -13,6 +13,7 @@ from __future__ import annotations
 import dataclasses
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, Request, Depends
@@ -125,16 +126,57 @@ async def health():
 # Analysis
 # ------------------------------------------------------------------
 
+FREE_TIER_CREDITS = int(os.getenv("FREE_TIER_CREDITS", "10"))
+CREDIT_PERIOD_DAYS = 30
+
+
+async def _consume_credit(user: User, db: AsyncSession) -> None:
+    """
+    Free tier: FREE_TIER_CREDITS analyses per CREDIT_PERIOD_DAYS, rolling reset.
+    Paid users are unlimited. Raises 429 when the free quota is spent.
+    """
+    if user.is_paid:
+        return
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if user.credits_reset_at + timedelta(days=CREDIT_PERIOD_DAYS) <= now:
+        user.credits_used = 0
+        user.credits_reset_at = now
+
+    if user.credits_used >= FREE_TIER_CREDITS:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Free tier limit reached ({FREE_TIER_CREDITS} analyses per "
+                f"{CREDIT_PERIOD_DAYS} days). Upgrade for unlimited analyses."
+            ),
+        )
+
+    user.credits_used += 1
+    db.add(user)
+    await db.commit()
+
+
 @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
 @limiter.limit("10/minute")
-async def submit_analysis(request: Request, body: AnalyzeRequest, background_tasks: BackgroundTasks):
+async def submit_analysis(
+    request: Request,
+    body: AnalyzeRequest,
+    background_tasks: BackgroundTasks,
+    user: User | None = Depends(auth.get_optional_user),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Submit a Riot ID for analysis.
     Runs the riot + LLM pipeline in the background and returns a report_id.
     Poll GET /api/v1/report/{report_id} until status == "done".
+    Signed-in free users spend 1 credit per analysis (FREE_TIER_CREDITS/month);
+    anonymous requests still work until frontend auth is enforced.
     """
+    if user is not None:
+        await _consume_credit(user, db)
     logger.info("Received analysis request for %s region=%s", body.riot_id, body.region)
-    record = await db_store.create(body.riot_id)
+    record = await db_store.create(body.riot_id, user_id=user.id if user else None)
     background_tasks.add_task(_run_analysis, record.id, body.riot_id, body.region)
     logger.info("Queued background analysis report=%s riot_id=%s region=%s", record.id, body.riot_id, body.region)
     return AnalyzeResponse(report_id=record.id, status="queued")
