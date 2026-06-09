@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server'
 
-const API_URL   = process.env.API_URL   || 'http://localhost:8000'
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+import { cookies } from 'next/headers'
+
+const API_URL = process.env.API_URL || 'http://localhost:8000'
 
 export async function POST(request: Request) {
   const { gameName, tagLine } = await request.json()
   const riot_id = `${gameName}#${tagLine}`
+  let isDemo = false
+  try {
+    isDemo = cookies().get('demo_mode')?.value === 'true'
+  } catch {}
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true' || isDemo
 
-  if (MOCK_MODE) {
+  if (isMockMode) {
     await new Promise(r => setTimeout(r, 500))
     return NextResponse.json({ success: true, message: 'Riot ID linked (mock mode)' })
   }

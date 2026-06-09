@@ -150,3 +150,69 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Cyberpunk & Console Terminal ---------- */
+.terminal-window {
+  font-family: monospace;
+  background: rgba(3, 5, 12, 0.95);
+  border: 1px solid rgba(67, 97, 238, 0.2);
+  box-shadow: inset 0 0 20px rgba(67, 97, 238, 0.15), 0 8px 32px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.terminal-window::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0.45;
+}
+
+/* Custom glow text classes */
+.text-val-cyan { color: #00f0ff; text-shadow: 0 0 8px rgba(0, 240, 255, 0.4); }
+.text-val-yellow { color: #ffea00; text-shadow: 0 0 8px rgba(255, 234, 0, 0.4); }
+.text-glow-accent { text-shadow: 0 0 10px rgb(var(--accent) / 0.6); }
+
+/* ---------- Aim Target Visualizer Animations ---------- */
+@keyframes target-pop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-target-pop {
+  animation: target-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes laser-fade {
+  0% { opacity: 1; stroke-width: 2.5; }
+  100% { opacity: 0; stroke-width: 0.5; }
+}
+.animate-laser-fade {
+  animation: laser-fade 0.4s ease-out forwards;
+}
+
+@keyframes hit-glow {
+  0% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 0.8; transform: scale(1.4); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+.animate-hit-glow {
+  animation: hit-glow 0.35s ease-out forwards;
+}
+
+/* Diagonal borders */
+.border-diagonal {
+  position: relative;
+}
+.border-diagonal::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 10px; height: 10px;
+  background: rgb(var(--accent));
+  clip-path: polygon(100% 0, 0 100%, 100% 100%);
+}
+

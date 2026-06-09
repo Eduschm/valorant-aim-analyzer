@@ -10,7 +10,19 @@ import { MOCK_REPORT } from './mock/analysis'
 import { logger } from './logger'
 
 const API_URL   = process.env.NEXT_PUBLIC_API_URL  || 'http://localhost:8000'
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+export function isMockMode(): boolean {
+  if (typeof window !== 'undefined') {
+    const demoCookie = document.cookie.split('; ').find(row => row.startsWith('demo_mode='))
+    if (demoCookie) {
+      return demoCookie.split('=')[1] === 'true'
+    }
+    const stored = localStorage.getItem('aimlab_demo_mode')
+    if (stored !== null) {
+      return stored === 'true'
+    }
+  }
+  return process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+}
 
 // --------------------------------------------------------------------------
 // Base request
@@ -54,7 +66,7 @@ export interface ReportResponse {
 export const analysisApi = {
   /** Submit a Riot ID for analysis. Returns report_id to poll. */
   submit: async (riot_id: string): Promise<AnalyzeResponse> => {
-    if (MOCK_MODE) {
+    if (isMockMode()) {
       await new Promise(r => setTimeout(r, 800))
       return { report_id: 'mock-001', status: 'done' }
     }
@@ -66,7 +78,7 @@ export const analysisApi = {
 
   /** Poll for report status + results. */
   getReport: async (report_id: string): Promise<ReportResponse> => {
-    if (MOCK_MODE) {
+    if (isMockMode()) {
       await new Promise(r => setTimeout(r, 400))
       return {
         report_id,
@@ -88,7 +100,7 @@ export const analysisApi = {
 export const authApi = {
   /** Request a magic link email. */
   requestMagicLink: async (email: string): Promise<{ message: string }> => {
-    if (MOCK_MODE) return { message: 'Check your email (mock mode)' }
+    if (isMockMode()) return { message: 'Check your email (mock mode)' }
     return request('/api/v1/auth/magic-link', {
       method: 'POST',
       body: JSON.stringify({ email }),
@@ -97,7 +109,7 @@ export const authApi = {
 
   /** Link a Riot ID to the authenticated account. */
   linkRiotId: async (riot_id: string): Promise<{ message: string }> => {
-    if (MOCK_MODE) return { message: 'Riot ID linked (mock mode)' }
+    if (isMockMode()) return { message: 'Riot ID linked (mock mode)' }
     return request('/api/v1/auth/riot-id', {
       method: 'POST',
       body: JSON.stringify({ riot_id }),

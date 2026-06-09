@@ -1,8 +1,8 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard,
@@ -16,6 +16,8 @@ import {
   Crosshair,
 } from 'lucide-react'
 import { clearAnalyses } from '@/lib/storage'
+import { useAuthStore } from '@/lib/store'
+import { isMockMode } from '@/lib/api'
 
 const NAV = [
   { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
@@ -88,10 +90,32 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
+
+  const { user, setUser } = useAuthStore()
+
+  // Hydrate user/mode on mount
+  useEffect(() => {
+    setIsDemo(isMockMode())
+    const storedRiotId = localStorage.getItem('aimlab_last_riot_id') || 'DemoPlayer#NA1'
+    const storedPaid = localStorage.getItem('aimlab_pro_tier') === 'true'
+    setUser({
+      id: 'demo-user-id',
+      email: 'dev@localhost',
+      riotId: storedRiotId,
+      gameName: storedRiotId.split('#')[0],
+      tagLine: storedRiotId.split('#')[1] || 'NA1',
+      isPaid: storedPaid,
+    } as any)
+  }, [setUser, pathname])
 
   const handleSignOut = () => {
     clearAnalyses()
+    localStorage.removeItem('aimlab_pro_tier')
+    localStorage.removeItem('aimlab_last_riot_id')
     document.cookie = 'auth_token=; Max-Age=0; path=/'
+    document.cookie = 'demo_mode=; Max-Age=0; path=/'
+    setUser(null)
     router.push('/')
   }
 
@@ -103,6 +127,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Logo />
         </div>
         <NavLinks />
+        <div className="px-4 py-3 border-t border-[#1F2130] bg-[#111322]/20 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-val-accent/10 border border-val-accent/30 flex items-center justify-center font-display text-sm font-bold text-val-accent">
+            {user?.gameName?.[0]?.toUpperCase() || 'D'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-[#F0F1F5] truncate font-mono">
+              {user?.gameName || 'DemoPlayer'}<span className="text-[#42495A]">#{user?.tagLine || 'NA1'}</span>
+            </p>
+            <p className="text-[10px] text-[#7A8496] flex items-center gap-1">
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${user?.isPaid ? 'bg-emerald-400' : 'bg-[#7A8496]'}`} />
+              {user?.isPaid ? 'Pro Account' : 'Free Account'}
+            </p>
+          </div>
+        </div>
         <button
           onClick={handleSignOut}
           className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-val-danger transition border-t border-[#1F2130]"
@@ -141,6 +179,20 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </button>
               </div>
               <NavLinks onNavigate={() => setMobileOpen(false)} />
+              <div className="px-4 py-3 border-t border-[#1F2130] bg-[#111322]/20 flex items-center gap-3 mt-auto">
+                <div className="h-9 w-9 rounded-full bg-val-accent/10 border border-val-accent/30 flex items-center justify-center font-display text-sm font-bold text-val-accent">
+                  {user?.gameName?.[0]?.toUpperCase() || 'D'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-[#F0F1F5] truncate font-mono">
+                    {user?.gameName || 'DemoPlayer'}<span className="text-[#42495A]">#{user?.tagLine || 'NA1'}</span>
+                  </p>
+                  <p className="text-[10px] text-[#7A8496] flex items-center gap-1">
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full ${user?.isPaid ? 'bg-emerald-400' : 'bg-[#7A8496]'}`} />
+                    {user?.isPaid ? 'Pro Account' : 'Free Account'}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={handleSignOut}
                 className="flex items-center gap-3 px-6 py-4 text-sm text-[#42495A] hover:text-val-danger transition border-t border-[#1F2130]"
@@ -166,6 +218,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-[#F0F1F5]">
             {pageTitle(pathname)}
           </h2>
+          {isDemo && (
+            <span className="ml-3 rounded-full border border-val-cyan/35 bg-val-cyan/10 px-2 py-0.5 text-[9px] font-bold text-val-cyan tracking-wider uppercase animate-pulse shadow-[0_0_8px_rgba(0,240,255,0.15)]">
+              Demo Sandbox
+            </span>
+          )}
           <Link
             href="/analysis/new"
             className="ml-auto clip-corner-sm hidden items-center gap-1.5 bg-val-accent px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-val-accent-dark sm:inline-flex"

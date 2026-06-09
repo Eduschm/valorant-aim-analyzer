@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowLeft, TrendingUp, Target, Swords, Trophy, AlertCircle, Crosshair, Sparkles } from 'lucide-react'
+import { ArrowLeft, TrendingUp, Target, Swords, Trophy, AlertCircle, Crosshair, Sparkles, Terminal, Cpu } from 'lucide-react'
 import { saveAnalysis } from '@/lib/storage'
 import { logger } from '@/lib/logger'
 import { Stagger, Item, Reveal } from '@/components/ui/motion'
@@ -41,14 +41,60 @@ export default function AnalysisReportPage() {
   const [report, setReport] = useState<Report | null>(null)
   const [loadingMsg, setLoadingMsg] = useState('Fetching match history...')
   const [error, setError] = useState('')
+  const [logs, setLogs] = useState<string[]>([
+    'SYSTEM: Initializing AimLab VAL analysis hook...',
+    'SYSTEM: Target PUUID resolution initiated.'
+  ])
+  const terminalEndRef = useRef<HTMLDivElement>(null)
 
-  // Cycle loading messages while processing
+  // Auto-scroll terminal console
   useEffect(() => {
+    if (typeof terminalEndRef.current?.scrollIntoView === 'function') {
+      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [logs])
+
+  // Cycle loading messages & append detailed terminal logs
+  useEffect(() => {
+    if (report?.status === 'done') return
+
     const msgs = ['Fetching match history...', 'Parsing match stats...', 'Generating coaching report...', 'Almost done...']
     let i = 0
-    const interval = setInterval(() => { i = (i + 1) % msgs.length; setLoadingMsg(msgs[i]) }, 3500)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(() => {
+      i = (i + 1) % msgs.length
+      setLoadingMsg(msgs[i])
+    }, 3500)
+
+    const logPool = [
+      'API: Connected to Henrik API proxy [GREEN]',
+      'API: Resolving region affinity and current match history endpoint...',
+      'STATS: Pulling last 20 competitive matches...',
+      'PARSER: Compiling win-rate and tier placements...',
+      'PARSER: Deriving rank delta from MMR history...',
+      'STATS: Aggregating headshot contact vector ratios...',
+      'STATS: Computing Average Damage per Round (ADR)...',
+      'DETECTOR: Aligning screen coordinates with custom YOLO crosshair bounds...',
+      'COACH: Compiling statistical telemetry schema...',
+      'COACH: Dispatching prompt to Claude-Haiku-4.5 coaching engine...',
+      'COACH: Coaching feedback response stream received...',
+      'COACH: JSON output structure validation passed [100%]',
+      'SYSTEM: Storing structured analysis report in local database...',
+      'SYSTEM: Calibration complete.'
+    ]
+
+    let logIdx = 0
+    const logInterval = setInterval(() => {
+      if (logIdx < logPool.length) {
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${logPool[logIdx]}`])
+        logIdx++
+      }
+    }, 1500)
+
+    return () => {
+      clearInterval(interval)
+      clearInterval(logInterval)
+    }
+  }, [report])
 
   // Poll until done
   useEffect(() => {
@@ -117,24 +163,57 @@ export default function AnalysisReportPage() {
     )
   }
 
-  // --- Loading ---
+  // --- Loading (Cyberpunk Console) ---
   if (!report || report.status !== 'done') {
     return (
-      <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-[#070B18]">
+      <div className="relative flex min-h-screen flex-col items-center justify-center gap-6 overflow-hidden bg-[#070B18] px-6">
         <div className="pointer-events-none absolute inset-0 bg-radial-glow" />
         <div className="pointer-events-none absolute inset-0 bg-grid aurora" />
-        <div className="relative">
-          <div className="h-14 w-14 animate-spin rounded-full border-2 border-[#1F2130] border-t-val-accent" />
-          <Crosshair className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-val-accent" />
+        
+        <div className="w-full max-w-xl text-center space-y-3 relative z-10">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-val-accent/10 text-val-accent animate-pulse">
+            <Cpu className="h-6 w-6" />
+          </div>
+          <h2 className="font-display text-xl font-bold uppercase tracking-wider text-[#F0F1F5]">
+            Analyzing Aim Metrics
+          </h2>
+          <p className="text-xs text-[#7A8496]">
+            Parsing competitive match telemetry for deep-aim statistics.
+          </p>
         </div>
-        <motion.p
-          key={loadingMsg}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative text-sm text-[#7A8496]"
-        >
-          {loadingMsg}
-        </motion.p>
+
+        {/* High-tech scrolling terminal window */}
+        <div className="terminal-window w-full max-w-xl rounded-xl p-5 border border-white/5 relative z-10">
+          <div className="flex items-center justify-between border-b border-[#1F2130] pb-2.5 mb-3 text-xs">
+            <div className="flex gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-val-danger/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 animate-pulse" />
+            </div>
+            <span className="text-[9px] text-[#42495A] tracking-widest font-bold font-mono">
+              AIMLAB-CONSOLE v1.0.4-BETA
+            </span>
+          </div>
+
+          <div className="h-44 overflow-y-auto space-y-1 font-mono text-[11px] text-[#7A8496] leading-relaxed scrollbar-thin">
+            {logs.map((log, index) => {
+              let color = 'text-[#7A8496]'
+              if (log.includes('[GREEN]') || log.includes('complete')) color = 'text-emerald-400 font-semibold'
+              if (log.includes('COACH:')) color = 'text-[#8E9DF5]'
+              if (log.includes('SYSTEM:')) color = 'text-white'
+              return (
+                <div key={index} className={color}>
+                  {log}
+                </div>
+              )
+            })}
+            <div ref={terminalEndRef} />
+            <div className="flex items-center gap-1.5 text-val-cyan pt-1">
+              <span>&gt; {loadingMsg}</span>
+              <span className="w-1.5 h-3 bg-val-cyan animate-pulse" />
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

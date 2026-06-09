@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server'
 import { MOCK_REPORT } from '@/lib/mock/analysis'
 
-const API_URL   = process.env.API_URL   || 'http://localhost:8000'
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+import { cookies } from 'next/headers'
+
+const API_URL = process.env.API_URL || 'http://localhost:8000'
 
 export async function GET(
   _request: Request,
   { params }: { params: { id: string } }
 ) {
   const { id } = params
+  let isDemo = false
+  try {
+    isDemo = cookies().get('demo_mode')?.value === 'true'
+  } catch {}
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true' || isDemo
 
-  if (MOCK_MODE) {
+  if (isMockMode) {
     return NextResponse.json({ success: true, data: { ...MOCK_REPORT, report_id: id } })
   }
 

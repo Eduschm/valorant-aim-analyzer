@@ -1,9 +1,9 @@
-﻿'use client'
+'use client'
 
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { StatsTrend } from '@/components/tracker/StatsTrend'
 import { MatchTable } from '@/components/tracker/MatchTable'
 import { getAllAnalyses, getAnalyses, StoredAnalysis } from '@/lib/storage'
@@ -17,7 +17,8 @@ function TrackerContent() {
   const riotId  = params.get('id') || ''
 
   const [analyses, setAnalyses] = useState<StoredAnalysis[]>([])
-  const [latest,   setLatest]   = useState<StoredAnalysis | null>(null)
+  const [activeMetric, setActiveMetric] = useState<'hs' | 'adr' | 'winRate'>('hs')
+  const [latest, setLatest] = useState<StoredAnalysis | null>(null)
 
   useEffect(() => {
     const all   = riotId ? getAnalyses(riotId) : getAllAnalyses()
@@ -44,6 +45,7 @@ function TrackerContent() {
     label: `#${i + 1}`,
     hs:    a.riot_report?.avg_headshot_pct ?? 0,
     adr:   a.riot_report?.avg_adr ?? 0,
+    winRate: (a.riot_report?.win_rate ?? 0) * 100,
   }))
 
   const matches = current?.matches ?? []
@@ -86,20 +88,61 @@ function TrackerContent() {
       {/* Trend chart */}
       {chartData.length > 1 && (
         <Reveal>
-          <div className="glass rounded-xl p-5">
-            <p className="mb-4 text-xs uppercase tracking-widest text-[#42495A]">HS% over analyses</p>
-            <ResponsiveContainer width="100%" height={140}>
-              <LineChart data={chartData}>
-                <XAxis dataKey="label" tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis domain={['auto', 'auto']} tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} width={30} />
-                <Tooltip
-                  contentStyle={{ background: '#0C1028', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: '#7A8496' }}
-                  itemStyle={{ color: '#4361EE' }}
-                />
-                <Line type="monotone" dataKey="hs" stroke="#4361EE" strokeWidth={2.5} dot={{ r: 3, fill: '#4361EE' }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="glass rounded-xl p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#1F2130] pb-3">
+              <p className="text-xs uppercase tracking-widest text-[#42495A]">Aim Analytics Trajectory</p>
+              <div className="flex gap-1 bg-[#11131E] p-1 border border-[#1F2130] rounded-lg text-[10px] font-semibold">
+                {[
+                  { id: 'hs', label: 'Headshot %' },
+                  { id: 'adr', label: 'Avg ADR' },
+                  { id: 'winRate', label: 'Win Rate' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveMetric(tab.id as any)}
+                    className={`px-3 py-1 rounded transition-colors uppercase text-[9px] ${
+                      activeMetric === tab.id
+                        ? 'bg-val-accent/15 text-val-accent font-bold border border-val-accent/25'
+                        : 'text-[#7A8496] hover:text-[#F0F1F5]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="h-[160px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="metricGlow" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={activeMetric === 'hs' ? '#4361EE' : activeMetric === 'adr' ? '#8E9DF5' : '#00f0ff'} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={activeMetric === 'hs' ? '#4361EE' : activeMetric === 'adr' ? '#8E9DF5' : '#00f0ff'} stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="label" tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={['auto', 'auto']} tick={{ fill: '#42495A', fontSize: 11 }} axisLine={false} tickLine={false} width={40} />
+                  <Tooltip
+                    contentStyle={{ background: '#0C1028', border: '1px solid #1F2130', borderRadius: 8, fontSize: 12 }}
+                    labelStyle={{ color: '#7A8496' }}
+                    itemStyle={{ color: '#F0F1F5' }}
+                    formatter={(value: any) => [
+                      `${Number(value).toFixed(activeMetric === 'hs' ? 1 : 0)}${activeMetric === 'adr' ? '' : '%'}`,
+                      activeMetric === 'hs' ? 'Headshot' : activeMetric === 'adr' ? 'Avg ADR' : 'Win Rate'
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={activeMetric}
+                    stroke={activeMetric === 'hs' ? '#4361EE' : activeMetric === 'adr' ? '#8E9DF5' : '#00f0ff'}
+                    strokeWidth={2.5}
+                    fill="url(#metricGlow)"
+                    dot={{ r: 3, fill: activeMetric === 'hs' ? '#4361EE' : activeMetric === 'adr' ? '#8E9DF5' : '#00f0ff' }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </Reveal>
       )}

@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server'
 
-const API_URL   = process.env.API_URL   || 'http://localhost:8000'
-const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+import { cookies } from 'next/headers'
+
+const API_URL = process.env.API_URL || 'http://localhost:8000'
 
 export async function POST(request: Request) {
   const { riotId, region } = await request.json()
+  let isDemo = false
+  try {
+    isDemo = cookies().get('demo_mode')?.value === 'true'
+  } catch {}
+  const isMockMode = process.env.NEXT_PUBLIC_MOCK_MODE === 'true' || isDemo
 
-  if (MOCK_MODE) {
+  if (isMockMode) {
     await new Promise(r => setTimeout(r, 800))
     return NextResponse.json({ success: true, data: { id: 'mock-001', status: 'done' } })
   }

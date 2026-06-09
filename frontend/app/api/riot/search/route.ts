@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 
 const RIOT_API_KEY = process.env.RIOT_API_KEY || ''
 const CACHE: Record<string, { data: any[]; ts: number }> = {}
@@ -10,8 +11,28 @@ export async function GET(request: Request) {
 
   if (!q || q.length < 2) return NextResponse.json([])
 
-  // No API key → return empty (no dropdown shown, graceful fallback)
-  if (!RIOT_API_KEY) return NextResponse.json([])
+  let isDemoVal = false
+  try {
+    isDemoVal = cookies().get('demo_mode')?.value === 'true'
+  } catch {}
+  const isDemo = isDemoVal || process.env.NEXT_PUBLIC_MOCK_MODE === 'true'
+
+  // No API key → return mock suggestions in sandbox/demo mode
+  if (!RIOT_API_KEY) {
+    if (isDemo) {
+      const mockPlayers = [
+        { game_name: 'TenZ', tag_line: 'NA1' },
+        { game_name: 'Shroud', tag_line: 'NA1' },
+        { game_name: 'ScreaM', tag_line: 'EUW' },
+        { game_name: 'DemoPlayer', tag_line: 'NA1' },
+        { game_name: 'Eduardo', tag_line: 'BR1' }
+      ]
+      const queryLower = q.toLowerCase().split('#')[0]
+      const matches = mockPlayers.filter(p => p.game_name.toLowerCase().includes(queryLower))
+      return NextResponse.json(matches)
+    }
+    return NextResponse.json([])
+  }
 
   const cacheKey = q.toLowerCase()
   const cached   = CACHE[cacheKey]
