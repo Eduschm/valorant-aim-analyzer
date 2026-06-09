@@ -13,16 +13,14 @@ from __future__ import annotations
 import dataclasses
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-import uuid
-import datetime
-import secrets
-import hashlib
-
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Response, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -38,24 +36,55 @@ DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
 try:
     from .schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest
-    from .store   import store
+    from .db_store import db_store
+    from .database import init_db, get_db
+    from .models import User
+    from . import auth
 except ImportError:
     # Fallback for running with: uvicorn main:app (not as package)
     from schemas import AnalyzeRequest, AnalyzeResponse, ReportResponse, MagicLinkRequest, LinkRiotIdRequest  # type: ignore
-    from store   import store  # type: ignore
+    from db_store import db_store  # type: ignore
+    from database import init_db, get_db  # type: ignore
+    from models import User  # type: ignore
+    import auth  # type: ignore
 
-# Simple in-memory session store (replaced by DB+JWT in auth implementation)
-# token → user dict
-_sessions: dict[str, dict] = {}
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * auth.JWT_TTL_DAYS
 
 
-def _make_token(user_id: str) -> str:
-    raw = f"{user_id}:{secrets.token_hex(32)}"
-    return hashlib.sha256(raw.encode()).hexdigest()
+def _set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key="auth_token",
+        value=token,
+        httponly=True,
+        samesite="lax",
+        max_age=AUTH_COOKIE_MAX_AGE,
+    )
+
+
+def _user_payload(user: User) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "riot_id": user.riot_id,
+        "is_paid": user.is_paid,
+        "credits_used": user.credits_used,
+        "created_at": user.created_at.isoformat(),
+    }
+
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Creates tables for sqlite dev; production schemas come from alembic.
+    await init_db()
+    logger.info("Database initialized")
+    yield
+
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0")
+app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0", lifespan=lifespan)
 app.state.limiter = limiter
 logger.info("Starting API app: DEV_MODE=%s", DEV_MODE)
 
@@ -97,16 +126,57 @@ async def health():
 # Analysis
 # ------------------------------------------------------------------
 
+FREE_TIER_CREDITS = int(os.getenv("FREE_TIER_CREDITS", "10"))
+CREDIT_PERIOD_DAYS = 30
+
+
+async def _consume_credit(user: User, db: AsyncSession) -> None:
+    """
+    Free tier: FREE_TIER_CREDITS analyses per CREDIT_PERIOD_DAYS, rolling reset.
+    Paid users are unlimited. Raises 429 when the free quota is spent.
+    """
+    if user.is_paid:
+        return
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if user.credits_reset_at + timedelta(days=CREDIT_PERIOD_DAYS) <= now:
+        user.credits_used = 0
+        user.credits_reset_at = now
+
+    if user.credits_used >= FREE_TIER_CREDITS:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Free tier limit reached ({FREE_TIER_CREDITS} analyses per "
+                f"{CREDIT_PERIOD_DAYS} days). Upgrade for unlimited analyses."
+            ),
+        )
+
+    user.credits_used += 1
+    db.add(user)
+    await db.commit()
+
+
 @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
 @limiter.limit("10/minute")
-async def submit_analysis(request: Request, body: AnalyzeRequest, background_tasks: BackgroundTasks):
+async def submit_analysis(
+    request: Request,
+    body: AnalyzeRequest,
+    background_tasks: BackgroundTasks,
+    user: User | None = Depends(auth.get_optional_user),
+    db: AsyncSession = Depends(get_db),
+):
     """
     Submit a Riot ID for analysis.
     Runs the riot + LLM pipeline in the background and returns a report_id.
     Poll GET /api/v1/report/{report_id} until status == "done".
+    Signed-in free users spend 1 credit per analysis (FREE_TIER_CREDITS/month);
+    anonymous requests still work until frontend auth is enforced.
     """
+    if user is not None:
+        await _consume_credit(user, db)
     logger.info("Received analysis request for %s region=%s", body.riot_id, body.region)
-    record = store.create(body.riot_id)
+    record = await db_store.create(body.riot_id, user_id=user.id if user else None)
     background_tasks.add_task(_run_analysis, record.id, body.riot_id, body.region)
     logger.info("Queued background analysis report=%s riot_id=%s region=%s", record.id, body.riot_id, body.region)
     return AnalyzeResponse(report_id=record.id, status="queued")
@@ -150,7 +220,7 @@ def _friendly_error(exc: Exception) -> str:
 
 async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
     """Background task: fetch Riot data → generate coaching → store result."""
-    store.update(report_id, status="processing")
+    await db_store.update(report_id, status="processing")
     logger.info("Background task start report=%s riot_id=%s region=%s", report_id, riot_id, region)
     try:
         # Works whether run from repo root (services.riot) or services/api (sys.path set above)
@@ -165,7 +235,7 @@ async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
         riot = await get_riot_report(riot_id, region=region)
         coaching = await generate_coaching_report(riot)
 
-        store.update(
+        await db_store.update(
             report_id,
             status="done",
             riot_report=dataclasses.asdict(riot),
@@ -174,13 +244,13 @@ async def _run_analysis(report_id: str, riot_id: str, region: str = "na"):
         logger.info("Background task complete report=%s riot_id=%s status=done", report_id, riot_id)
     except Exception as exc:
         logger.exception("Background task failed report=%s riot_id=%s", report_id, riot_id)
-        store.update(report_id, status="error", error=_friendly_error(exc))
+        await db_store.update(report_id, status="error", error=_friendly_error(exc))
 
 
 @app.get("/api/v1/report/{report_id}", response_model=ReportResponse)
 async def get_report(report_id: str):
     """Poll for report status + results."""
-    record = store.get(report_id)
+    record = await db_store.get(report_id)
     if record is None:
         logger.warning("Report not found: %s", report_id)
         raise HTTPException(status_code=404, detail="Report not found")
@@ -197,30 +267,62 @@ async def get_report(report_id: str):
 
 
 # ------------------------------------------------------------------
-# Auth (stubbed — needs DB + Resend — see AGENT_TASKS.md)
+# Auth — magic link + JWT (services/api/auth.py)
 # ------------------------------------------------------------------
 
 @app.post("/api/v1/auth/magic-link")
-async def request_magic_link(body: MagicLinkRequest):
+async def request_magic_link(body: MagicLinkRequest, db: AsyncSession = Depends(get_db)):
     """
-    NOT YET IMPLEMENTED.
-    Requires: DATABASE_URL (Neon/Supabase), RESEND_API_KEY, JWT_SECRET.
-    See services/api/AGENT_TASKS.md Steps 1-3.
+    Email a single-use sign-in link (15 min expiry).
+    Without RESEND_API_KEY the link is logged server-side; in DEV_MODE it is
+    also returned as dev_link so local dev works without email.
     """
-    raise HTTPException(
-        status_code=501,
-        detail="Auth not yet implemented. See services/api/AGENT_TASKS.md.",
-    )
+    result = await auth.create_magic_link(body.email, db)
+    response = {"message": "If that email is valid, a sign-in link is on its way."}
+    if result["dev_link"]:
+        response["dev_link"] = result["dev_link"]
+    return response
 
 
 @app.get("/api/v1/auth/verify")
-async def verify_magic_link(token: str):
-    raise HTTPException(status_code=501, detail="Auth not yet implemented.")
+async def verify_magic_link(token: str, db: AsyncSession = Depends(get_db)):
+    """Validate the magic token, set the auth cookie, send the user home."""
+    user, jwt_token = await auth.verify_token(token, db)
+    logger.info("User %s signed in via magic link", user.email)
+    response = RedirectResponse(url=os.getenv("FRONTEND_URL", "http://localhost:3000"))
+    _set_auth_cookie(response, jwt_token)
+    return response
 
 
 @app.post("/api/v1/auth/riot-id")
-async def link_riot_id(body: LinkRiotIdRequest):
-    raise HTTPException(status_code=501, detail="Auth not yet implemented.")
+async def link_riot_id(
+    body: LinkRiotIdRequest,
+    user: User = Depends(auth.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Validate the Riot ID against the Riot API and save it to the account."""
+    try:
+        from services.riot.service import get_riot_report
+    except ImportError:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+        from riot.service import get_riot_report  # type: ignore
+
+    try:
+        report = await get_riot_report(body.riot_id, match_count=1)
+    except Exception as exc:
+        logger.warning("Riot ID validation failed for %s: %s", body.riot_id, exc)
+        raise HTTPException(status_code=400, detail=_friendly_error(exc))
+
+    user.riot_id = f"{report.game_name}#{report.tag_line}"
+    db.add(user)
+    await db.commit()
+    return {"riot_id": user.riot_id, "message": "Riot ID linked."}
+
+
+@app.get("/api/v1/me")
+async def get_me(user: User = Depends(auth.get_current_user)):
+    """Current authenticated user — used by the frontend to hydrate auth state."""
+    return _user_payload(user)
 
 
 # ------------------------------------------------------------------
@@ -234,59 +336,43 @@ class DevCreateAccountRequest(BaseModel):
 
 
 @app.post("/api/v1/dev/create-account")
-async def dev_create_account(body: DevCreateAccountRequest, response: Response):
+async def dev_create_account(
+    body: DevCreateAccountRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
     """
-    Create a dev account and return a session token immediately.
-    No email, no magic link, no database required.
-
-    Only works when DEV_MODE=true in .env.
-    Returns a token you can pass as Authorization: Bearer <token>
-    or it sets an auth_token cookie automatically.
+    Create (or reuse) a real DB user and return a real JWT immediately.
+    No email, no magic link. Only works when DEV_MODE=true in .env.
+    Pass the token as Authorization: Bearer <token>, or rely on the
+    auth_token cookie this sets.
     """
     if not DEV_MODE:
         raise HTTPException(status_code=404, detail="Not found")
 
-    user_id = str(uuid.uuid4())
-    user = {
-        "id":       user_id,
-        "email":    body.email,
-        "riot_id":  body.riot_id,
-        "is_paid":  False,
-        "created_at": datetime.datetime.utcnow().isoformat(),
-    }
-    token = _make_token(user_id)
-    _sessions[token] = user
+    user = await auth.get_or_create_user(body.email.strip().lower(), db)
+    if body.riot_id:
+        user.riot_id = body.riot_id
+        db.add(user)
+        await db.commit()
 
-    # Set cookie so the frontend picks it up automatically
-    response.set_cookie(
-        key="auth_token",
-        value=token,
-        httponly=True,
-        samesite="lax",
-        max_age=60 * 60 * 24 * 7,  # 7 days
-    )
+    token = auth.create_jwt(user.id)
+    _set_auth_cookie(response, token)
 
     return {
         "token":   token,
-        "user":    user,
+        "user":    _user_payload(user),
         "message": "Dev account created. Token set as auth_token cookie.",
     }
 
 
 @app.get("/api/v1/dev/session")
-async def dev_get_session(token: str | None = None):
-    """Look up a dev session by token. Used to verify the bypass worked."""
+async def dev_get_session(token: str | None = None, db: AsyncSession = Depends(get_db)):
+    """Look up a dev session by JWT. Used to verify the bypass worked."""
     if not DEV_MODE:
         raise HTTPException(status_code=404, detail="Not found")
-    if not token or token not in _sessions:
+    user_id = auth.decode_jwt(token) if token else None
+    user = await db.get(User, user_id) if user_id else None
+    if user is None:
         return {"authenticated": False}
-    return {"authenticated": True, "user": _sessions[token]}
-
-
-@app.delete("/api/v1/dev/sessions")
-async def dev_clear_sessions():
-    """Clear all dev sessions. Useful for testing."""
-    if not DEV_MODE:
-        raise HTTPException(status_code=404, detail="Not found")
-    _sessions.clear()
-    return {"message": "All dev sessions cleared"}
+    return {"authenticated": True, "user": _user_payload(user)}

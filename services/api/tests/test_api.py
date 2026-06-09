@@ -35,15 +35,6 @@ MOCK_COACHING = CoachingReport(
 )
 
 
-@pytest.fixture
-def client():
-    from services.api.store import store
-    store._reports.clear()
-    from services.api.main import app, limiter
-    limiter._storage.reset()
-    return TestClient(app)
-
-
 def test_health(client):
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -94,14 +85,6 @@ def test_full_analysis_flow(client):
         assert result["status"] == "done"
         assert result["riot_report"] is not None
         assert result["coaching"] is not None
-
-
-def test_auth_endpoints_return_501(client):
-    resp = client.post("/api/v1/auth/magic-link", json={"email": "test@example.com"})
-    assert resp.status_code == 501
-
-    resp = client.post("/api/v1/auth/riot-id", json={"riot_id": "Name#TAG"})
-    assert resp.status_code == 501
 
 
 # ------------------------------------------------------------------ #

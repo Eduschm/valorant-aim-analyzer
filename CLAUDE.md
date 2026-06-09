@@ -236,7 +236,7 @@ frontend → api
 | `services/cv` | Done | `python main.py clip.mp4` | Standalone YOLO pipeline. Needs `models/valorant.pt`. |
 | `services/riot` | Done | `service.py → get_riot_report()` | Full implementation. Needs `RIOT_API_KEY`. Dev key expires every 24h. |
 | `services/llm` | Done | `coach.py → generate_coaching_report()` | Full implementation. Needs `ANTHROPIC_API_KEY`. ~$0.006/call. |
-| `services/api` | Partial | `uvicorn main:app --port 8000` | `/analyze` + `/report/{id}` work. Auth routes return 501. In-memory store only. |
+| `services/api` | Done | `uvicorn main:app --port 8000` | Full pipeline + DB (sqlite dev / Postgres prod) + magic-link auth + rate limit + free tier credits. |
 | `frontend` | Done | `npm run dev` → port 3000 | All pages built. Mock + real mode both work. |
 
 ### Frontend pages
@@ -326,10 +326,16 @@ When adding fields: add with a default value, bump the schema version in the doc
 | `GET` | `/health` | Health check |
 | `POST` | `/api/v1/analyze` | Submit `{"riot_id": "Name#TAG"}` → returns `report_id` |
 | `GET` | `/api/v1/report/{id}` | Poll for report status + results |
-| `POST` | `/api/v1/auth/magic-link` | Request magic link email *(501 — not built yet)* |
-| `GET` | `/api/v1/auth/verify` | Verify magic link token *(501)* |
-| `POST` | `/api/v1/auth/riot-id` | Link Riot ID to account *(501)* |
-| `POST` | `/api/v1/dev/create-account` | Dev bypass — creates session instantly |
+| `POST` | `/api/v1/auth/magic-link` | Request magic link email (Resend; `dev_link` returned in DEV_MODE) |
+| `GET` | `/api/v1/auth/verify` | Verify magic token → set `auth_token` cookie → redirect to FRONTEND_URL |
+| `POST` | `/api/v1/auth/riot-id` | Link Riot ID to account (requires auth, validated via Riot API) |
+| `GET` | `/api/v1/me` | Current user (id, email, riot_id, is_paid, credits_used) |
+| `POST` | `/api/v1/dev/create-account` | Dev bypass — real DB user + real JWT instantly |
+| `GET` | `/api/v1/dev/session` | Verify a dev JWT works |
+
+`POST /api/v1/analyze` is rate limited (10/minute/IP) and, for signed-in free
+users, consumes 1 credit (10 per rolling 30 days; paid = unlimited; anonymous
+requests still pass until frontend auth is enforced).
 
 ---
 
@@ -338,10 +344,12 @@ When adding fields: add with a default value, bump the schema version in the doc
 ### services/api
 
 - **Entry point**: `main.py` — FastAPI application
-- **In-memory store**: `store.py` — temporary analysis results (replaced by DB when auth is built)
+- **Database**: `database.py` (async engine, sqlite default, Postgres via `DATABASE_URL`) + `models.py` (User, MagicToken, Report) + `db_store.py` (report store)
+- **Auth**: `auth.py` — magic link (Resend) + JWT (7-day, httpOnly cookie or Bearer)
+- **Migrations**: `alembic/` — `cd services/api && alembic upgrade head` (sqlite dev auto-creates tables on startup)
 - **Schemas**: `schemas.py` — request/response Pydantic types
-- **Tests**: `tests/test_api.py`
-- **Dependencies**: FastAPI, Uvicorn, Pydantic, httpx, python-dotenv
+- **Tests**: `tests/` — test_api, test_auth, test_credits, test_database (all mocked)
+- **Dependencies**: FastAPI, Uvicorn, Pydantic, SQLAlchemy async, alembic, python-jose, resend, slowapi
 
 ```bash
 python -m pytest services/api/tests/ -v
@@ -425,52 +433,26 @@ cd frontend && npm test
 
 ## Remaining work — priority order
 
-### 1. Auth + DB — Tasks A + B (HIGH — blocks accounts, free tier, paid tier)
+> Tasks A–D and frontend auth wiring shipped in PR #37 (DB, magic link + JWT,
+> rate limiting, free tier credits, auth store hydration). What's left:
 
-**Task A: Database (replaces in-memory store)**
-
-Requires: `DATABASE_URL` (Neon https://neon.tech or Supabase https://supabase.com free tier)
-
-1. Create `services/api/database.py` with SQLAlchemy async engine + `Base`
-2. Create `services/api/models.py` with `User`, `MagicToken`, `Report` ORM tables
-3. Replace `store.InMemoryStore` in `main.py` with async DB calls
-4. Run `alembic init alembic` and create the initial migration
-
-**Task B: Auth — magic link + JWT**
-
-Requires: `RESEND_API_KEY` (https://resend.com, 100/day free), `JWT_SECRET` (`openssl rand -hex 32`)
-
-Create `services/api/auth.py`:
-- `create_magic_link(email, db)` — get/create User, create MagicToken (15 min expiry), send via Resend
-- `verify_token(token, db)` — validate token, mark used, return JWT (7-day expiry)
-- `get_current_user(request, db)` — FastAPI dependency, reads `auth_token` cookie
-
-Wire into `main.py`:
-- `POST /api/v1/auth/magic-link` → `create_magic_link`
-- `GET /api/v1/auth/verify?token=xxx` → `verify_token` → set httpOnly cookie → redirect to `/`
-- `POST /api/v1/auth/riot-id` → require auth, validate via `get_riot_report`, save to user
-
-### 2. Rate limiting + credit tracking — Tasks C + D (LOW — depends on Task A)
-
-**Task C: Rate limiting**
-```bash
-pip install slowapi
-```
-Apply `@limiter.limit("10/minute")` on `POST /api/v1/analyze`.
-
-**Task D: Free tier enforcement**
-
-In `submit_analysis`: check `user.credits_used >= 10`, raise HTTP 429 if over limit, increment on each call. Reset monthly.
-
-### 3. Wire frontend auth state (LOW — depends on Tasks A + B)
-
-`frontend/lib/store.ts` has `useAuthStore` defined but nothing calls `setUser()`. Add `GET /api/v1/me` endpoint and call it on app load to hydrate the auth store.
-
-### 4. Apply for Riot production key (ADMIN — no code)
+### 1. Apply for Riot production key (ADMIN — no code)
 
 Dev key expires every 24h and will break the live product on day one. Apply at https://developer.riotgames.com/app-type (takes 1-3 business days).
 
-### 5. Phase 2: Clip upload (HIGH complexity — do not start until Phase 1 has paying users)
+### 2. Production env setup (ADMIN — no code)
+
+Set `DATABASE_URL` (Neon/Supabase), `JWT_SECRET` (`openssl rand -hex 32`),
+`RESEND_API_KEY` + `EMAIL_FROM`, `FRONTEND_URL`, `API_BASE_URL`. Run
+`cd services/api && alembic upgrade head` against the production DB.
+
+### 3. Require auth on /analyze (SMALL — once signin UX is polished)
+
+Anonymous analyze still passes (frontend flow predates auth). Flip
+`get_optional_user` → `get_current_user` on `submit_analysis` when ready
+to enforce the free tier for everyone.
+
+### 4. Phase 2: Clip upload (HIGH complexity — do not start until Phase 1 has paying users)
 
 - Drag-and-drop upload (3 min, ~200MB cap)
 - Server-side FFmpeg frame extraction at 5fps
@@ -478,7 +460,7 @@ Dev key expires every 24h and will break the live product on day one. Apply at h
 - Merge CV report with Riot report before LLM call
 - Async queue (BackgroundTasks → Celery when needed)
 
-### 6. Phase 3: Payments (MEDIUM — do not start until Phase 1 has paying users)
+### 5. Phase 3: Payments (MEDIUM — do not start until Phase 1 has paying users)
 
 Stripe integration, credit-based. Free: 10/month. Paid: $9/month, unlimited.
 
@@ -491,7 +473,7 @@ Stripe integration, credit-based. Free: 10/month. Paid: $9/month, unlimited.
 - Claude Haiku 4.5 for production LLM.
 - Magic link email auth, no passwords.
 - Riot ID = account identifier (prevents multi-account free tier abuse).
-- In-memory store for MVP — replace with DB only when auth is built.
+- DB-backed store (sqlite dev, Postgres prod via `DATABASE_URL`) — the in-memory store is gone.
 - No Redis queue until background processing exceeds 10s.
 - 3-minute clip cap, free tier.
 - 7-day trial instead of money-back guarantee.
@@ -510,7 +492,7 @@ Desktop client, CS2/Apex, team/coach accounts, replay file parsing, mobile app, 
 | Phase | What | Status |
 |---|---|---|
 | 0 | YOLO model training + validation | Model trained (40 epochs, 10k images), needs diverse clip testing |
-| 1 | Tracker-only MVP (Riot + Claude + frontend) | Core done — auth + DB not built |
+| 1 | Tracker-only MVP (Riot + Claude + frontend) | Done — auth, DB, rate limit, credits shipped. Needs prod keys (Riot, Resend, Neon). |
 | 2 | Clip analysis web upload | Not started |
 | 3 | Payments + launch | Not started |
 
@@ -526,6 +508,11 @@ RIOT_API_KEY=RGAPI-...        # https://developer.riotgames.com
 ANTHROPIC_API_KEY=sk-ant-...  # https://console.anthropic.com
 DEV_MODE=true
 ```
+
+Auth works with zero extra config in dev: sqlite database auto-created,
+magic links logged + returned as `dev_link`, ephemeral JWT secret. For
+production add `DATABASE_URL`, `JWT_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`,
+`FRONTEND_URL`, `API_BASE_URL`.
 
 Frontend config (`frontend/.env.local`):
 ```
@@ -662,6 +649,6 @@ pip install -r requirements.txt
 |---|---|---|
 | `RIOT_API_KEY` | https://developer.riotgames.com | Match history + rank |
 | `ANTHROPIC_API_KEY` | https://console.anthropic.com | Coaching report (~$0.006/report) |
-| `RESEND_API_KEY` | https://resend.com | Magic link email (not built yet) |
-| `DATABASE_URL` | Neon or Supabase free tier | Persistent auth (not built yet) |
-| `JWT_SECRET` | `openssl rand -hex 32` | JWT sessions (not built yet) |
+| `RESEND_API_KEY` | https://resend.com | Magic link email delivery (link is logged + `dev_link` without it) |
+| `DATABASE_URL` | Neon or Supabase free tier | Production Postgres (sqlite auto-used in dev without it) |
+| `JWT_SECRET` | `openssl rand -hex 32` | Stable JWT sessions (ephemeral secret generated in dev without it) |

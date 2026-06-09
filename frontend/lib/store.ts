@@ -1,11 +1,13 @@
 import { create } from 'zustand'
 
-interface User {
+export interface User {
   id: string
   email: string
-  riotId: string
+  riotId: string | null
   gameName: string
   tagLine: string
+  isPaid: boolean
+  creditsUsed: number
 }
 
 interface AuthStore {

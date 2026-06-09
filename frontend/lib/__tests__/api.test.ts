@@ -59,6 +59,39 @@ describe('authApi.requestMagicLink', () => {
   })
 })
 
+describe('authApi.me', () => {
+  const ME = {
+    id: 'u1',
+    email: 'edu@example.com',
+    riot_id: 'TestPlayer#NA1',
+    is_paid: false,
+    credits_used: 2,
+    created_at: '2026-06-09T00:00:00',
+  }
+
+  it('calls GET /api/v1/me with credentials included', async () => {
+    global.fetch = mockFetch(200, ME)
+    const result = await authApi.me()
+    expect(fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/api/v1/me',
+      expect.objectContaining({ credentials: 'include' })
+    )
+    expect(result?.email).toBe('edu@example.com')
+  })
+
+  it('returns null on 401 instead of throwing', async () => {
+    global.fetch = mockFetch(401, { detail: 'Not authenticated.' })
+    const result = await authApi.me()
+    expect(result).toBeNull()
+  })
+
+  it('returns null when the API is unreachable', async () => {
+    global.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed'))
+    const result = await authApi.me()
+    expect(result).toBeNull()
+  })
+})
+
 describe('mock mode', () => {
   it('submit returns mock-001 without fetch when MOCK_MODE=true', async () => {
     vi.stubEnv('NEXT_PUBLIC_MOCK_MODE', 'true')
