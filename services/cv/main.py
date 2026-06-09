@@ -37,12 +37,27 @@ def parse_args():
     return p.parse_args()
 
 
+def _check_model(model_path: str | None = None) -> None:
+    """Warn clearly when the custom model is absent — better than a cryptic crash."""
+    path = model_path if model_path is not None else config.MODEL_PATH
+    if not os.path.exists(path):
+        print(
+            f"\n[WARNING] Custom model not found: {path}\n"
+            "  Detection accuracy will be lower (falling back to YOLOv8n / COCO).\n"
+            "  To download the custom model run:\n"
+            "      python services/cv/scripts/download_model.py\n",
+            file=sys.stderr,
+        )
+
+
 def main():
     args = parse_args()
 
     if not os.path.exists(args.video):
         logger.error("Video not found: %s", args.video)
         sys.exit(1)
+
+    _check_model()
 
     if args.device:
         config.DEVICE = args.device

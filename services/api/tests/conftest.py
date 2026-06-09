@@ -21,6 +21,7 @@ def client():
     # Fresh sqlite DB per test — lifespan (init_db) recreates the tables
     if os.path.exists(TEST_DB_PATH):
         os.remove(TEST_DB_PATH)
-    from services.api.main import app
+    from services.api.main import app, limiter
+    limiter._storage.reset()
     with TestClient(app) as c:
         yield c

@@ -21,6 +21,9 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from services.logging import configure_logging, get_logger
 
@@ -78,8 +81,24 @@ async def lifespan(app: FastAPI):
     yield
 
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="Valorant Aim Analyzer API", version="0.1.0", lifespan=lifespan)
+app.state.limiter = limiter
 logger.info("Starting API app: DEV_MODE=%s", DEV_MODE)
+
+
+from fastapi.responses import JSONResponse
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    retry_after = getattr(exc, "retry_after", 60) or 60
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}. Try again later."},
+        headers={"Retry-After": str(retry_after)},
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -107,7 +126,8 @@ async def health():
 # ------------------------------------------------------------------
 
 @app.post("/api/v1/analyze", response_model=AnalyzeResponse)
-async def submit_analysis(body: AnalyzeRequest, background_tasks: BackgroundTasks):
+@limiter.limit("10/minute")
+async def submit_analysis(request: Request, body: AnalyzeRequest, background_tasks: BackgroundTasks):
     """
     Submit a Riot ID for analysis.
     Runs the riot + LLM pipeline in the background and returns a report_id.
